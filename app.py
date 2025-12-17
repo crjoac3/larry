@@ -19,15 +19,11 @@ def save_data(df, file_path):
     df.to_csv(file_path, index=False)
 
 def check_login(username, password):
-    # EMERGENCY BACKDOOR
-    if username == "admin" and password == "helpme":
-        return "admin"
-        
-    # Standard check
     users = load_data(USER_DB_FILE, ['username', 'password', 'role'])
     user_match = users[users['username'] == username]
     
     if not user_match.empty:
+        # Strict string comparison to prevent type errors
         stored_password = str(user_match.iloc[0]['password']).strip()
         if str(password).strip() == stored_password:
             return user_match.iloc[0]['role']
@@ -37,7 +33,9 @@ def check_login(username, password):
 if 'logged_in' not in st.session_state:
     st.session_state.update({'logged_in': False, 'user_role': None, 'username': None})
 
-# --- LOGIN SCREEN ---
+# =======================================================
+#                      LOGIN SCREEN
+# =======================================================
 if not st.session_state['logged_in']:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -54,11 +52,15 @@ if not st.session_state['logged_in']:
             else:
                 st.error("❌ Invalid username or password")
 
-# --- MAIN APPLICATION ---
+# =======================================================
+#                  MAIN APPLICATION
+# =======================================================
 else:
+    # --- SIDEBAR NAVIGATION ---
     with st.sidebar:
         st.write(f"👤 **{st.session_state['username']}**")
         st.write(f"🔑 **{st.session_state['user_role'].upper()}**")
+        
         st.divider()
         
         if st.session_state['user_role'] == 'admin':
@@ -90,29 +92,27 @@ else:
             user_df = df[df['owner'] == viewer].drop(columns=['owner'])
             
             if not user_df.empty:
-                # --- NEW: STATUS FILTER ---
-                # Checks if 'Status' column exists in your new file
+                # --- STATUS FILTER ---
                 if 'Status' in user_df.columns:
-                    status_options = ['All'] + sorted(user_df['Status'].astype(str).unique().tolist())
-                    selected_status = st.selectbox("Filter by Status:", status_options)
-                    
-                    if selected_status != 'All':
-                        user_df = user_df[user_df['Status'] == selected_status]
+                    status_opts = ['All'] + sorted(user_df['Status'].astype(str).unique().tolist())
+                    status_filter = st.selectbox("Filter by Status:", status_opts)
+                    if status_filter != 'All':
+                        user_df = user_df[user_df['Status'] == status_filter]
 
                 # --- METRICS ---
                 c1, c2, c3 = st.columns(3)
                 c1.metric("Items Shown", len(user_df))
                 c2.metric("Unique POs", user_df['PO'].nunique() if 'PO' in user_df.columns else 0)
-                # Calculate Total Value if 'Sales Price' exists and is numeric
+                
+                # Calculate Total Value if Sales Price exists
+                val_metric = "N/A"
                 if 'Sales Price' in user_df.columns:
-                    # Clean currency strings (remove $ and ,) if necessary
                     try:
-                        total_val = user_df['Sales Price'].replace('[\$,]', '', regex=True).astype(float).sum()
-                        c3.metric("Total Value", f"${total_val:,.2f}")
-                    except:
-                        c3.metric("Total Value", "N/A")
-                else:
-                    c3.metric("Unique Parts", user_df['Part#'].nunique() if 'Part#' in user_df.columns else 0)
+                        # Clean currency strings
+                        total = user_df['Sales Price'].replace('[\$,]', '', regex=True).astype(float).sum()
+                        val_metric = f"${total:,.2f}"
+                    except: pass
+                c3.metric("Total Value", val_metric)
                 
                 st.divider()
                 
@@ -129,12 +129,7 @@ else:
                 
                 # --- DOWNLOAD ---
                 csv = display_df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="Download CSV",
-                    data=csv,
-                    file_name=f"{viewer}_inventory_export.csv",
-                    mime="text/csv"
-                )
+                st.download_button("Download CSV", csv, f"{viewer}_inventory.csv", "text/csv")
             else:
                 st.warning(f"No inventory records found for client: **{viewer}**")
         else:
@@ -153,43 +148,69 @@ else:
         target_client = st.selectbox("Select Client to Manage", clients)
         
         master_df = load_data(MASTER_INVENTORY_FILE)
+        current_count = 0
         if not master_df.empty and 'owner' in master_df.columns:
             current_count = len(master_df[master_df['owner'] == target_client])
-        else:
-            current_count = 0
             
         st.caption(f"Current inventory count for **{target_client}**: {current_count} items")
         st.divider()
 
-        tab1, tab2 = st.tabs(["📤 Replace Inventory", "🗑️ Clear Data"])
+        tab1, tab2 = st.tabs(["📤 Upload Excel (Multi-Tab)", "🗑️ Delete All Data"])
         
-        # TAB 1: REPLACE
+        # TAB 1: EXCEL PROCESSING
         with tab1:
             st.write(f"### Update Inventory for {target_client}")
-            st.info("⚠️ Uploading a file here will **DELETE** the previous inventory for this client and replace it with the new file.")
+            st.info("ℹ️ Upload Master Excel. Select which tabs contain 'On Hand' vs 'Sold' data.")
             
-            uploaded_file = st.file_uploader("Upload New Master File (CSV/Excel)", type=['csv', 'xlsx'])
+            uploaded_file = st.file_uploader("Upload Master Excel", type=['xlsx'])
             
-            if st.button("🚫 Replace Inventory", type="primary"):
-                if uploaded_file:
-                    try:
-                        if uploaded_file.name.endswith('.csv'): new_data = pd.read_csv(uploaded_file)
-                        else: new_data = pd.read_excel(uploaded_file)
+            if uploaded_file:
+                try:
+                    # Inspect Excel
+                    xls = pd.ExcelFile(uploaded_file)
+                    sheet_names = xls.sheet_names
+                    
+                    st.write("---")
+                    st.subheader("⚙️ Map Your Tabs")
+                    
+                    c1, c2 = st.columns(2)
+                    
+                    # Auto-detect tabs
+                    def_inv = next((i for i, n in enumerate(sheet_names) if "inventory" in n.lower() or "on hand" in n.lower()), 0)
+                    def_sold = next((i for i, n in enumerate(sheet_names) if "sold" in n.lower()), 0)
+                    
+                    with c1: inv_sheet = st.selectbox("Select 'On Hand' Tab:", sheet_names, index=def_inv)
+                    with c2: sold_sheet = st.selectbox("Select 'Sold' Tab:", sheet_names, index=def_sold)
+                    
+                    st.warning(f"⚠️ Clicking below will DELETE existing data for {target_client} and replace it with data from these two tabs.")
+                    
+                    if st.button("🔄 Process & Replace Inventory", type="primary", use_container_width=True):
+                        # Load & Merge
+                        df_inv = pd.read_excel(uploaded_file, sheet_name=inv_sheet)
+                        df_sold = pd.read_excel(uploaded_file, sheet_name=sold_sheet)
                         
+                        # Add Status if missing
+                        if 'Status' not in df_inv.columns: df_inv['Status'] = 'ON HAND'
+                        if 'Status' not in df_sold.columns: df_sold['Status'] = 'SOLD'
+                            
+                        new_data = pd.concat([df_inv, df_sold], ignore_index=True)
                         new_data['owner'] = target_client
                         
+                        # Save to Database
                         master_df = load_data(MASTER_INVENTORY_FILE)
                         if not master_df.empty and 'owner' in master_df.columns:
-                            # Remove old data for this user
                             master_df = master_df[master_df['owner'] != target_client]
                         
                         updated_master = pd.concat([master_df, new_data], ignore_index=True)
                         save_data(updated_master, MASTER_INVENTORY_FILE)
-                        st.success(f"✅ Success! Updated inventory ({len(new_data)} items) for **{target_client}**.")
-                    except Exception as e:
-                        st.error(f"Error processing file: {e}")
+                        
+                        st.success(f"✅ Success! Merged **{len(df_inv)}** On Hand items and **{len(df_sold)}** Sold items.")
+                        st.balloons()
 
-        # TAB 2: CLEAR
+                except Exception as e:
+                    st.error(f"Error processing Excel: {e}")
+
+        # TAB 2: DELETE ONLY
         with tab2:
             st.write(f"### Clear Inventory for {target_client}")
             if st.button("🗑️ Clear Inventory"):
@@ -250,4 +271,3 @@ else:
                     save_data(users_df, USER_DB_FILE)
                     st.success(f"User **{to_delete}** deleted.")
                     st.rerun()
-
