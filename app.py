@@ -316,8 +316,6 @@ else:
         st.divider()
         
         # Menu Permissions
-        menu_options = ["Inventory Search", "Recall Management"]
-        
         menu_options = ["Inventory Search", "Recall Management", "My Profile"]
         
         # Super Admin & WestWorld Global Managers
@@ -376,7 +374,7 @@ else:
                 
                 val = "N/A"
                 if 'Sales Price' in display_df.columns:
-                    try: val = f"${display_df['Sales Price'].replace('[\$,]', '', regex=True).astype(float).sum():,.2f}"
+                    try: val = f"${display_df['Sales Price'].replace(r'[\$,]', '', regex=True).astype(float).sum():,.2f}"
                     except: pass
                 m3.metric("Total Asset Value", val)
                 
@@ -619,7 +617,10 @@ else:
                     with c5: 
                         # Get existing companies from inventory or users
                         inv_data = load_data(MASTER_INVENTORY_FILE)
-                        known_cos = sorted(list(set(inv_data['owner'].unique()) | set(users_df['company'].unique())))
+                        # Robustly get owner column regardless of case
+                        o_col = next((c for c in inv_data.columns if c.lower() == 'owner'), None)
+                        inv_cos = set(inv_data[o_col].unique()) if o_col else set()
+                        known_cos = sorted(list(inv_cos | set(users_df['company'].unique())))
                         new_co = st.selectbox("Company Name", known_cos)
                 else:
                     # Managers can create other managers or viewers for their own company
@@ -660,7 +661,10 @@ else:
                     # Role/Company change only for Super Admin or if editing someone in company
                     if is_global_admin() and target_user_edit != 'admin':
                         inv_data = load_data(MASTER_INVENTORY_FILE)
-                        known_cos = sorted(list(set(inv_data['owner'].unique()) | set(users_df['company'].unique())))
+                        # Robustly get owner column regardless of case
+                        o_col = next((c for c in inv_data.columns if c.lower() == 'owner'), None)
+                        inv_cos = set(inv_data[o_col].unique()) if o_col else set()
+                        known_cos = sorted(list(inv_cos | set(users_df['company'].unique())))
                         e_comp = st.selectbox("Company", known_cos, index=known_cos.index(user_data['company']) if user_data['company'] in known_cos else 0)
                         
                         roles_list = ['viewer', 'manager', 'admin']
