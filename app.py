@@ -696,76 +696,77 @@ else:
             st.info("Add email recipients below. You can assign emails to specific companies or 'ALL' companies.")
             
             current_settings = load_settings()
-        rules = current_settings.get("email_rules", [])
-        
-        # Display Current Rules
-        if rules:
-            st.write("#### Active Notification Rules")
-            rule_df = pd.DataFrame(rules)
+            rules = current_settings.get("email_rules", [])
             
-            # Formatted display
-            c_rule, c_btn = st.columns([3, 1])
-            with c_rule:
-                st.dataframe(rule_df, hide_index=True, width="stretch")
-            with c_btn:
-                # Simple Delete Logic
-                idx_to_del = st.number_input("Rule Index to Delete", min_value=0, max_value=len(rules)-1, step=1, label_visibility="collapsed")
-                if st.button("🗑️ Delete Rule by Index"):
-                    rules.pop(idx_to_del)
-                    save_settings({"email_rules": rules})
-                    st.rerun()
-        else:
-            st.warning("No notification rules set. Recall requests will not trigger alerts.")
-
-        st.markdown("---")
-        
-        # Add New Rule
-        st.write("#### Add New Recipient")
-        users_df = load_data(USER_DB_FILE)
-        # Companies + ALL
-        client_companies = ["ALL"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
-        
-        with st.form("add_rule_form"):
-            c1, c2 = st.columns(2)
-            with c1: 
-                r_email = st.text_input("Email Address", placeholder="manager@example.com")
-            with c2: 
-                r_company = st.selectbox("Applies To Company", client_companies)
-            
-            if st.form_submit_button("➕ Add Recipient Rule"):
-                if r_email and "@" in r_email:
-                    new_rule = {"company": r_company, "email": r_email}
-                    # Avoid duplicates
-                    if new_rule not in rules:
-                        rules.append(new_rule)
+            # Display Current Rules
+            if rules:
+                st.write("#### Active Notification Rules")
+                rule_df = pd.DataFrame(rules)
+                
+                # Formatted display
+                c_rule, c_btn = st.columns([3, 1])
+                with c_rule:
+                    st.dataframe(rule_df, hide_index=True, width="stretch")
+                with c_btn:
+                    # Simple Delete Logic
+                    idx_to_del = st.number_input("Rule Index to Delete", min_value=0, max_value=len(rules)-1, step=1, label_visibility="collapsed")
+                    if st.button("🗑️ Delete Rule by Index"):
+                        rules.pop(idx_to_del)
                         save_settings({"email_rules": rules})
-                        st.success(f"Added {r_email} for {r_company}")
                         st.rerun()
-                    else:
-                        st.warning("Rule already exists.")
-                else:
-                    st.error("Invalid email address.")
+            else:
+                st.warning("No notification rules set. Recall requests will not trigger alerts.")
 
-        st.markdown("---")
-        st.subheader("🔐 System SMTP Configuration")
-        st.caption("Required for actual email notifications.")
-        
-        with st.form("smtp_form"):
-            c1, c2 = st.columns([2, 1])
-            with c1: s_host = st.text_input("SMTP Server", value=current_settings.get("smtp_server", ""))
-            with c2: s_port = st.number_input("SMTP Port", value=current_settings.get("smtp_port", 587))
+            st.markdown("---")
             
-            c3, c4 = st.columns(2)
-            with c3: s_user = st.text_input("SMTP Username (Email)", value=current_settings.get("smtp_user", ""))
-            with c4: s_pass = st.text_input("SMTP Password / App Password", type="password", value=current_settings.get("smtp_pass", ""))
+            # Add New Rule
+            st.write("#### Add New Recipient")
+            users_df = load_data(USER_DB_FILE)
+            # Companies + ALL
+            client_companies = ["ALL"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
             
-            if st.form_submit_button("💾 Save SMTP Settings"):
-                current_settings.update({
-                    "smtp_server": s_host,
-                    "smtp_port": s_port,
-                    "smtp_user": s_user,
-                    "smtp_pass": s_pass
-                })
-                save_settings(current_settings)
-                st.success("✅ SMTP settings saved!")
-                st.rerun()
+            with st.form("add_rule_form"):
+                c1, c2 = st.columns(2)
+                with c1: 
+                    r_email = st.text_input("Email Address", placeholder="manager@example.com")
+                with c2: 
+                    r_company = st.selectbox("Applies To Company", client_companies)
+                
+                if st.form_submit_button("➕ Add Recipient Rule"):
+                    if r_email and "@" in r_email:
+                        new_rule = {"company": r_company, "email": r_email}
+                        # Avoid duplicates
+                        if new_rule not in rules:
+                            rules.append(new_rule)
+                            current_settings["email_rules"] = rules
+                            save_settings(current_settings)
+                            st.success(f"Added {r_email} for {r_company}")
+                            st.rerun()
+                        else:
+                            st.warning("Rule already exists.")
+                    else:
+                        st.error("Invalid email address.")
+
+            st.markdown("---")
+            st.subheader("🔐 System SMTP Configuration")
+            st.caption("Required for actual email notifications.")
+            
+            with st.form("smtp_form"):
+                c1, c2 = st.columns([2, 1])
+                with c1: s_host = st.text_input("SMTP Server", value=current_settings.get("smtp_server", ""))
+                with c2: s_port = st.number_input("SMTP Port", value=current_settings.get("smtp_port", 587))
+                
+                c3, c4 = st.columns(2)
+                with c3: s_user = st.text_input("SMTP Username (Email)", value=current_settings.get("smtp_user", ""))
+                with c4: s_pass = st.text_input("SMTP Password / App Password", type="password", value=current_settings.get("smtp_pass", ""))
+                
+                if st.form_submit_button("💾 Save SMTP Settings"):
+                    current_settings.update({
+                        "smtp_server": s_host,
+                        "smtp_port": s_port,
+                        "smtp_user": s_user,
+                        "smtp_pass": s_pass
+                    })
+                    save_settings(current_settings)
+                    st.success("✅ SMTP settings saved!")
+                    st.rerun()
