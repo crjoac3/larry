@@ -139,6 +139,23 @@ def check_login(username, password):
             return user_match.iloc[0]['role'], user_match.iloc[0]['company'], name
     return None, None, None
 
+def get_company_logo(company):
+    """Fetches the company logo if exists, else returns the default logo."""
+    # Ensure logos directory exists
+    if not os.path.exists('logos'):
+        os.makedirs('logos')
+        
+    # Check for company specific logo (supported extensions)
+    for ext in ['png', 'jpg', 'jpeg', 'webp']:
+        path = f"logos/{company}.{ext}"
+        if os.path.exists(path):
+            return path
+    
+    # Fallback to default
+    if os.path.exists(LOGO_FILE):
+        return LOGO_FILE
+    return None
+
 def load_settings():
     if os.path.exists(SETTINGS_FILE):
         try:
@@ -256,10 +273,13 @@ if 'logged_in' not in st.session_state:
 if not st.session_state['logged_in']:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if os.path.exists(LOGO_FILE):
-            st.image(LOGO_FILE, width=300)
+        # For login screen, we don't know the company yet until they type it or login.
+        # But we can try to guess if they typed something, or just use default.
+        logo_to_show = get_company_logo("WestWorld")
+        if logo_to_show:
+            st.image(logo_to_show, width=300)
         else:
-            st.title("🌐 WestWorld Telecom (v2.2)")
+            st.title("🌐 WestWorld Telecom (v2.9)")
             
         st.subheader("Partner Portal Login")
         st.markdown("---")
@@ -287,8 +307,9 @@ if not st.session_state['logged_in']:
 else:
     # Sidebar
     with st.sidebar:
-        if os.path.exists(LOGO_FILE):
-            st.image(LOGO_FILE, width=200)
+        logo_to_show = get_company_logo(st.session_state['company'])
+        if logo_to_show:
+            st.image(logo_to_show, width=200)
         
         st.markdown(f"### Welcome, {st.session_state.get('name', st.session_state['username'])}")
         st.caption(f"🏢 {st.session_state['company']}")
@@ -301,9 +322,9 @@ else:
         if is_global_admin():
             menu_options = ["Inventory Search", "Recall Management", "Assign Inventory", "User Management", "Settings"]
         
-        # Client Admin (Can manage their own users)
+        # Client Admin / Manager (Can manage their own users and branding)
         elif st.session_state['user_role'] == 'manager':
-            menu_options = ["Inventory Search", "Recall Management", "User Management"]
+            menu_options = ["Inventory Search", "Recall Management", "User Management", "Settings"]
             
         page = st.radio("Navigate", menu_options)
             
@@ -633,10 +654,48 @@ else:
     # --- PAGE 5: ADMIN SETTINGS ---
     elif page == "Settings":
         st.title("⚙️ Portal Settings")
-        st.subheader("📧 Notification Configuration")
-        st.info("Add email recipients below. You can assign emails to specific companies or 'ALL' companies.")
         
-        current_settings = load_settings()
+        # --- 🎨 BRANDING SECTION ---
+        st.subheader("🎨 Portal Branding")
+        st.caption("Customize the portal logo for your company.")
+        
+        branding_col1, branding_col2 = st.columns([1, 2])
+        company_name = st.session_state['company']
+        
+        with branding_col1:
+            current_logo = get_company_logo(company_name)
+            if current_logo:
+                st.write("**Current Logo:**")
+                st.image(current_logo, width=150)
+        
+        with branding_col2:
+            new_logo_file = st.file_uploader("Upload New Logo (PNG/JPG)", type=['png', 'jpg', 'jpeg', 'webp'], key="logo_uploader")
+            if new_logo_file:
+                # Save new logo
+                if not os.path.exists('logos'):
+                    os.makedirs('logos')
+                
+                # Cleanup old logos for this company to avoid conflict
+                for ext in ['png', 'jpg', 'jpeg', 'webp']:
+                    old_path = f"logos/{company_name}.{ext}"
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
+                
+                ext = new_logo_file.name.split('.')[-1]
+                save_path = f"logos/{company_name}.{ext}"
+                with open(save_path, "wb") as f:
+                    f.write(new_logo_file.getbuffer())
+                st.success(f"✅ Logo updated for {company_name}!")
+                st.rerun()
+
+        st.divider()
+
+        # --- 📧 NOTIFICATIONS SECTION (GLOBAL ADMIN ONLY) ---
+        if is_global_admin():
+            st.subheader("📧 Notification Configuration")
+            st.info("Add email recipients below. You can assign emails to specific companies or 'ALL' companies.")
+            
+            current_settings = load_settings()
         rules = current_settings.get("email_rules", [])
         
         # Display Current Rules
