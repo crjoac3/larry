@@ -73,8 +73,8 @@ def repair_user_database():
     else:
         try:
             df = pd.read_csv(USER_DB_FILE)
-            # Check for new 'company' and 'email' columns
-            req_cols = ['username', 'password', 'role', 'company', 'email']
+            # Check for new 'company', 'email', 'name' columns
+            req_cols = ['username', 'password', 'role', 'company', 'email', 'name']
             
             # Migration Logic: Add missing columns if file exists but schema is old
             if not df.empty:
@@ -84,6 +84,9 @@ def repair_user_database():
                     save_required = True
                 if 'email' not in df.columns:
                     df['email'] = '' # Default empty
+                    save_required = True
+                if 'name' not in df.columns:
+                    df['name'] = df['username'] # Default to username
                     save_required = True
                 
                 if save_required:
@@ -102,8 +105,8 @@ def repair_user_database():
     if reset_needed:
         # Create a fresh file with WestWorld Super Admin
         with open(USER_DB_FILE, 'w') as f:
-            f.write("username,password,role,company,email\n")
-            f.write("admin,admin123,admin,WestWorld,admin@westworld.com\n")
+            f.write("username,password,role,company,email,name\n")
+            f.write("admin,admin123,admin,WestWorld,admin@westworld.com,Chris Jakobsen\n")
         print(f"⚠️ System repaired: {USER_DB_FILE} was recreated with new schema.")
 
 repair_user_database()
@@ -125,14 +128,16 @@ def save_data(df, file_path):
     df.to_csv(file_path, index=False)
 
 def check_login(username, password):
-    users = load_data(USER_DB_FILE, ['username', 'password', 'role', 'company', 'email'])
+    users = load_data(USER_DB_FILE, ['username', 'password', 'role', 'company', 'email', 'name'])
     user_match = users[users['username'] == username]
     
     if not user_match.empty:
         stored_password = str(user_match.iloc[0]['password']).strip()
         if str(password).strip() == stored_password:
-            return user_match.iloc[0]['role'], user_match.iloc[0]['company']
-    return None, None
+            # Return name if exists, else username
+            name = user_match.iloc[0]['name'] if 'name' in user_match.columns and pd.notna(user_match.iloc[0]['name']) else username
+            return user_match.iloc[0]['role'], user_match.iloc[0]['company'], name
+    return None, None, None
 
 def load_settings():
     if os.path.exists(SETTINGS_FILE):
@@ -190,7 +195,8 @@ if 'logged_in' not in st.session_state:
         'logged_in': False, 
         'user_role': None, 
         'username': None,
-        'company': None
+        'company': None,
+        'name': None
     })
 
 # =======================================================
@@ -211,13 +217,14 @@ if not st.session_state['logged_in']:
         password_input = st.text_input("Password", type="password")
         
         if st.button("Log In", type="primary", use_container_width=True):
-            role, company = check_login(username_input, password_input)
+            role, company, name = check_login(username_input, password_input)
             if role:
                 st.session_state.update({
                     'logged_in': True, 
                     'user_role': role, 
                     'username': username_input,
-                    'company': company
+                    'company': company,
+                    'name': name
                 })
                 st.rerun()
             else:
@@ -232,7 +239,7 @@ else:
         if os.path.exists(LOGO_FILE):
             st.image(LOGO_FILE, width=200)
         
-        st.markdown(f"### Welcome, {st.session_state['username']}")
+        st.markdown(f"### Welcome, {st.session_state.get('name', st.session_state['username'])}")
         st.caption(f"🏢 {st.session_state['company']}")
         st.divider()
         
@@ -251,7 +258,7 @@ else:
             
         st.divider()
         if st.button("Log Out"):
-            st.session_state.update({'logged_in': False, 'user_role': None, 'username': None, 'company': None})
+            st.session_state.update({'logged_in': False, 'user_role': None, 'username': None, 'company': None, 'name': None})
             st.rerun()
 
     # --- PAGE 1: INVENTORY SEARCH ---
@@ -326,7 +333,9 @@ else:
                         st.markdown("### Recall Request")
                         if st.button(f"🚀 Request Recall for {len(edited[edited.Select])} Item(s)"):
                             # Pass target_company to ensure correct attribution (not just who is logged in)
-                            emails = process_recall_request(edited[edited.Select], st.session_state['username'], target_company)
+                            # Pass 'name' for Requested By
+                            requester_name = st.session_state.get('name', st.session_state['username'])
+                            emails = process_recall_request(edited[edited.Select], requester_name, target_company)
                             st.balloons()
                             st.success(f"✅ Recall request submitted! Notifications sent to: {emails}")
                 else:
@@ -382,6 +391,7 @@ else:
                                     # 1. Update Status in Recall Log using UNIQUE INDEX
                                     if idx in recall_df.index:
                                         recall_df.loc[idx, 'Status'] = 'Completed'
+                                        recall_df.loc[idx, 'Processed By'] = st.session_state.get('name', st.session_state['username'])
                                     
                                     # 2. Remove from Master Inventory (Granular Removal)
                                     if not master_inventory.empty:
@@ -435,9 +445,10 @@ else:
                                     # 1. Update Recall Log using UNIQUE INDEX
                                     if idx in recall_df.index:
                                         recall_df.loc[idx, 'Status'] = 'Restocked'
+                                        recall_df.loc[idx, 'Processed By'] = st.session_state.get('name', st.session_state['username'])
                                     
                                     # 2. Add back to Master Inventory
-                                    clean_row = row.drop(labels=['Mark Received', 'Restock', 'Requested By', 'Company', 'Request Time', 'Status', 'Select'], errors='ignore')
+                                    clean_row = row.drop(labels=['Mark Received', 'Restock', 'Requested By', 'Company', 'Request Time', 'Status', 'Select', 'Processed By'], errors='ignore')
                                     
                                     # Ensure we have the correct columns for master inventory
                                     # We need to map 'Company' back to 'owner' if it's not present (it was dropped above)
@@ -517,6 +528,9 @@ else:
             with c2: new_p = st.text_input("Password", type="password")
             with c3: new_email = st.text_input("Email (For Recovery)")
             
+            with st.expander("Additional Details", expanded=True):
+                new_name = st.text_input("Full Name", placeholder="e.g. John Doe")
+
             if st.session_state['user_role'] == 'admin':
                 with c4: new_r = st.selectbox("Role", ["viewer", "manager", "admin"])
                 with c5: new_co = st.text_input("Company Name")
@@ -527,10 +541,11 @@ else:
             if st.form_submit_button("Save User"):
                 if new_u and new_p and new_co:
                     users_df = users_df[users_df['username'] != new_u]
-                    # Ensure 'email' column exists in dataframe before appending
+                    # Ensure columns exist in dataframe before appending
                     if 'email' not in users_df.columns: users_df['email'] = ''
+                    if 'name' not in users_df.columns: users_df['name'] = ''
                     
-                    new_row = pd.DataFrame([[new_u, new_p, new_r, new_co, new_email]], columns=['username', 'password', 'role', 'company', 'email'])
+                    new_row = pd.DataFrame([[new_u, new_p, new_r, new_co, new_email, new_name]], columns=['username', 'password', 'role', 'company', 'email', 'name'])
                     save_data(pd.concat([users_df, new_row], ignore_index=True), USER_DB_FILE)
                     st.success(f"✅ User {new_u} saved!")
                     st.rerun()
@@ -543,7 +558,7 @@ else:
         if st.session_state['user_role'] != 'admin':
             viewable_users = users_df[users_df['company'] == st.session_state['company']]
             
-        st.dataframe(viewable_users[['username', 'role', 'company', 'email']], hide_index=True, width="stretch")
+        st.dataframe(viewable_users[['username', 'role', 'company', 'email', 'name']], hide_index=True, width="stretch")
         
         col_del, _ = st.columns(2)
         with col_del:
