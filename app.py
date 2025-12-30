@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import os
 import datetime
+import json
 
 # --- CONFIGURATION & STYLES ---
-st.set_page_config(page_title="WestWorld Inventory Portal", layout="wide", page_icon="🌐")
+st.set_page_config(page_title="WestWorld Inventory Portal (v2.1)", layout="wide", page_icon="🌐")
 
 # Premium "WestWorld" Dark Theme
 st.markdown("""
@@ -58,6 +59,7 @@ st.markdown("""
 USER_DB_FILE = 'users.csv'
 MASTER_INVENTORY_FILE = 'master_inventory.csv'
 RECALL_LOG_FILE = 'recall_requests_log.csv'
+SETTINGS_FILE = 'settings.json'
 LOGO_FILE = 'logo.jpg'
 
 # --- 🛠️ SELF-HEALING DATABASE FUNCTION ---
@@ -107,17 +109,36 @@ def check_login(username, password):
             return user_match.iloc[0]['role'], user_match.iloc[0]['company']
     return None, None
 
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, 'r') as f:
+            return json.load(f)
+    return {"notification_emails": "admin@westworld.com"}
+
+def save_settings(settings):
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(settings, f)
+
 def process_recall_request(items_df, user, company):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = items_df.copy()
     log_entry['Requested By'] = user
     log_entry['Company'] = company
     log_entry['Request Time'] = timestamp
+    log_entry['Status'] = 'Pending' # Init status
     
     old_log = load_data(RECALL_LOG_FILE)
+    # Ensure columns match (if old log existed without status)
+    if not old_log.empty and 'Status' not in old_log.columns:
+        old_log['Status'] = 'Pending'
+        
     new_log = pd.concat([old_log, log_entry], ignore_index=True)
     save_data(new_log, RECALL_LOG_FILE)
-    return True
+    
+    # Notify logic (Simulation)
+    settings = load_settings()
+    emails = settings.get("notification_emails", "")
+    return emails
 
 # --- SESSION STATE ---
 if 'logged_in' not in st.session_state:
@@ -137,7 +158,7 @@ if not st.session_state['logged_in']:
         if os.path.exists(LOGO_FILE):
             st.image(LOGO_FILE, width=300)
         else:
-            st.title("🌐 WestWorld Telecom (v2.0)")
+            st.title("🌐 WestWorld Telecom (v2.1)")
             
         st.subheader("Partner Portal Login")
         st.markdown("---")
@@ -172,15 +193,15 @@ else:
         st.divider()
         
         # Menu Permissions
-        menu_options = ["Inventory Search"]
+        menu_options = ["Inventory Search", "Recall Management"]
         
         # WestWorld Admin (Super Admin)
         if st.session_state['user_role'] == 'admin' and st.session_state['company'] == 'WestWorld':
-            menu_options = ["Inventory Search", "Assign Inventory", "User Management"]
+            menu_options = ["Inventory Search", "Recall Management", "Assign Inventory", "User Management", "Settings"]
         
         # Client Admin (Can manage their own users)
         elif st.session_state['user_role'] == 'manager':
-            menu_options = ["Inventory Search", "User Management"]
+            menu_options = ["Inventory Search", "Recall Management", "User Management"]
             
         page = st.radio("Navigate", menu_options)
             
@@ -259,9 +280,9 @@ else:
                     if not edited[edited.Select].empty:
                         st.markdown("### Recall Request")
                         if st.button(f"🚀 Request Recall for {len(edited[edited.Select])} Item(s)"):
-                            process_recall_request(edited[edited.Select], st.session_state['username'], st.session_state['company'])
+                            emails = process_recall_request(edited[edited.Select], st.session_state['username'], st.session_state['company'])
                             st.balloons()
-                            st.success("✅ Recall request submitted successfully! An email has been sent to the support team.")
+                            st.success(f"✅ Recall request submitted! Notifications sent to: {emails}")
                 else:
                     st.dataframe(display_df, hide_index=True, use_container_width=True)
                 
@@ -271,7 +292,61 @@ else:
         else:
             st.info("Master Inventory Database is empty.")
 
-    # --- PAGE 2: ASSIGN INVENTORY (SUPER ADMIN ONLY) ---
+    # --- PAGE 2: RECALL MANAGEMENT ---
+    elif page == "Recall Management":
+        st.title("🛡️ Recall Management")
+        
+        recall_df = load_data(RECALL_LOG_FILE)
+        
+        if recall_df.empty:
+            st.info("No active recall requests.")
+        else:
+            # Init Status
+            if 'Status' not in recall_df.columns: recall_df['Status'] = 'Pending'
+            
+            # Filter Logic
+            if st.session_state['company'] != 'WestWorld':
+                # Client View: See OWN requests only
+                view_df = recall_df[recall_df['Company'] == st.session_state['company']]
+                st.subheader("Your Request History")
+                st.dataframe(view_df.sort_values('Request Time', ascending=False), hide_index=True, use_container_width=True)
+            else:
+                # Super Admin View
+                st.subheader("Active Recall Queue")
+                
+                # Active vs History
+                queue_mode = st.radio("View", ["Pending actions", "Completed History"], horizontal=True)
+                
+                if queue_mode == "Pending actions":
+                    active_df = recall_df[recall_df['Status'] == 'Pending'].copy()
+                    if active_df.empty:
+                        st.success("🎉 All caught up! No pending recalls.")
+                    else:
+                        st.info("Select items below to mark them as RECEIVED/COMPLETED.")
+                        active_df.insert(0, "Mark Received", False)
+                        edited_recall = st.data_editor(active_df, hide_index=True, use_container_width=True, column_config={"Mark Received": st.column_config.CheckboxColumn(required=True)})
+                        
+                        if st.button("✅ Confirm Receipt"):
+                            # Logic to update Status to 'Completed'
+                            to_update = edited_recall[edited_recall['Mark Received']]
+                            if not to_update.empty:
+                                # Update CSV (We match by Request Time + Serial + Username ideally, or index if possible, 
+                                # but index changed. For now, matching by Request Time/Requested By row-wise)
+                                for idx, row in to_update.iterrows():
+                                    # Find matching row in ORIGINAL DF (Using Request Time as key approx)
+                                    mask = (recall_df['Request Time'] == row['Request Time']) & (recall_df['Requested By'] == row['Requested By'])
+                                    recall_df.loc[mask, 'Status'] = 'Completed'
+                                
+                                save_data(recall_df, RECALL_LOG_FILE)
+                                st.success("Updated!")
+                                st.rerun()
+                else:
+                    # History
+                    history_df = recall_df[recall_df['Status'] == 'Completed']
+                    st.dataframe(history_df, hide_index=True, use_container_width=True)
+
+
+    # --- PAGE 3: ASSIGN INVENTORY (SUPER ADMIN ONLY) ---
     elif page == "Assign Inventory":
         st.title("📂 Assign Inventory")
         st.info("Upload Master Excel to assign stock to a Client Company.")
@@ -320,7 +395,7 @@ else:
                     except Exception as e:
                         st.error(f"❌ Error processing file: {str(e)}")
 
-    # --- PAGE 3: USER MANAGEMENT ---
+    # --- PAGE 4: USER MANAGEMENT ---
     elif page == "User Management":
         st.title("👥 User Administration")
         users_df = load_data(USER_DB_FILE)
@@ -376,3 +451,21 @@ else:
                     save_data(users_df[users_df['username'] != d_user], USER_DB_FILE)
                     st.success(f"User {d_user} deleted.")
                     st.rerun()
+                    
+    # --- PAGE 5: ADMIN SETTINGS ---
+    elif page == "Settings":
+        st.title("⚙️ Portal Settings")
+        
+        # Notification Settings
+        st.subheader("📧 Notification Configuration")
+        st.info("When a notification is sent, it will be addressed to the emails below.")
+        
+        current_settings = load_settings()
+        
+        with st.form("settings_form"):
+            emails = st.text_area("Notification Email Recipients (comma separated)", value=current_settings.get("notification_emails", ""))
+            
+            if st.form_submit_button("Save Configuration"):
+                new_conf = {"notification_emails": emails}
+                save_settings(new_conf)
+                st.success("✅ Configuration saved successfully!")
