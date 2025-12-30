@@ -343,29 +343,30 @@ else:
                                 removed_count = 0
                                 
                                 for idx, row in to_update.iterrows():
-                                    # 1. Update Status in Recall Log
-                                    # Strict matching using Serial Number if available, otherwise fall back to everything else
-                                    mask = (recall_df['Request Time'] == row['Request Time']) & (recall_df['Requested By'] == row['Requested By'])
+                                    # 1. Update Status in Recall Log using UNIQUE INDEX
+                                    if idx in recall_df.index:
+                                        recall_df.loc[idx, 'Status'] = 'Completed'
                                     
-                                    if 'Serial Number' in row and not pd.isna(row['Serial Number']):
-                                        mask = mask & (recall_df['Serial Number'] == row['Serial Number'])
-                                    elif 'PO' in row and not pd.isna(row['PO']):
-                                        mask = mask & (recall_df['PO'] == row['PO'])
-
-                                    recall_df.loc[mask, 'Status'] = 'Completed'
-                                    
-                                    # 2. Remove from Master Inventory
+                                    # 2. Remove from Master Inventory (Granular Removal)
                                     if not master_inventory.empty:
                                         inv_mask = None
-                                        # Verify we match the exact item in inventory to avoid deleting duplicates wrongly
-                                        if 'Serial Number' in row and 'Serial Number' in master_inventory.columns:
-                                            inv_mask = master_inventory['Serial Number'] == row['Serial Number']
-                                        elif 'PO' in row and 'PO' in master_inventory.columns: # Fallback if no serial
-                                            inv_mask = master_inventory['PO'] == row['PO']
+                                        
+                                        # Strict Match Logic
+                                        if 'Serial Number' in row and not pd.isna(row['Serial Number']):
+                                            if 'Serial Number' in master_inventory.columns:
+                                                inv_mask = master_inventory['Serial Number'] == row['Serial Number']
+                                        elif 'PO' in row and not pd.isna(row['PO']):
+                                            if 'PO' in master_inventory.columns:
+                                                inv_mask = master_inventory['PO'] == row['PO']
                                             
                                         if inv_mask is not None and inv_mask.any():
-                                            master_inventory = master_inventory[~inv_mask]
-                                            removed_count += 1
+                                            # FIND ALL COMPLETELY MATCHING ITEMS, BUT ONLY REMOVE ONE
+                                            # This prevents wiping out 5 identical items if we only recalled 1
+                                            matching_indices = master_inventory[inv_mask].index.tolist()
+                                            if matching_indices:
+                                                drop_idx = matching_indices[0] # Drop only the first match
+                                                master_inventory = master_inventory.drop(drop_idx)
+                                                removed_count += 1
 
                                 save_data(recall_df, RECALL_LOG_FILE)
                                 save_data(master_inventory, MASTER_INVENTORY_FILE)
@@ -395,21 +396,18 @@ else:
                                 restored_count = 0
                                 
                                 for idx, row in to_restock.iterrows():
-                                    # 1. Update Recall Log Status
-                                    mask = (recall_df['Request Time'] == row['Request Time']) & (recall_df['Requested By'] == row['Requested By'])
-                                    
-                                    if 'Serial Number' in row and not pd.isna(row['Serial Number']):
-                                        mask = mask & (recall_df['Serial Number'] == row['Serial Number'])
-
-                                    recall_df.loc[mask, 'Status'] = 'Restocked'
+                                    # 1. Update Recall Log using UNIQUE INDEX
+                                    if idx in recall_df.index:
+                                        recall_df.loc[idx, 'Status'] = 'Restocked'
                                     
                                     # 2. Add back to Master Inventory
-                                    # Prepare row: drop recall-specific columns
                                     clean_row = row.drop(labels=['Mark Received', 'Restock', 'Requested By', 'Company', 'Request Time', 'Status'], errors='ignore')
-                                    # Ensure owner is set correctly (use the Company from the log)
                                     clean_row['owner'] = row['Company']
                                     
-                                    # Append
+                                    # Force 'ON HAND' status if not present (logic assumption)
+                                    if 'Status' not in clean_row:
+                                        clean_row['Status'] = 'ON HAND'
+                                    
                                     master_inventory = pd.concat([master_inventory, pd.DataFrame([clean_row])], ignore_index=True)
                                     restored_count += 1
                                     
