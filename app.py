@@ -145,7 +145,17 @@ def load_settings():
             with open(SETTINGS_FILE, 'r') as f:
                 return json.load(f)
         except: pass
-    return {"email_rules": []}
+    return {
+        "email_rules": [],
+        "smtp_server": "",
+        "smtp_port": 587,
+        "smtp_user": "",
+        "smtp_pass": ""
+    }
+
+def is_global_admin():
+    """Helper to check if user has global administrative powers."""
+    return st.session_state['user_role'] == 'admin' or (st.session_state['user_role'] == 'manager' and st.session_state['company'] == 'WestWorld')
 
 def save_settings(settings):
     with open(SETTINGS_FILE, 'w') as f:
@@ -184,10 +194,51 @@ def process_recall_request(items_df, user, company):
         email = r.get("email", "").strip()
         
         if email:
-            if trigger_co == "ALL" or trigger_co == company:
-                recipients.add(email)
+                if trigger_co == "ALL" or trigger_co == company:
+                    recipients.add(email)
+    
+    # Send actual email if SMTP is configured
+    recipient_list = list(recipients)
+    if recipient_list:
+        subject = f"🚨 RECALL REQUEST: {company} - {len(items_df)} Item(s)"
+        body = f"A new recall request has been submitted by {user}.\n\n"
+        body += "Items Recalled:\n"
+        for _, row in items_df.iterrows():
+            sn = row.get('Serial Number', 'N/A')
+            model = row.get('Model', 'N/A')
+            body += f"- SN: {sn} | Model: {model}\n"
+        
+        body += f"\nView full details in the WestWorld Portal."
+        
+        send_email_actual(recipient_list, subject, body)
                 
     return ", ".join(recipients) if recipients else "No Notification Configured"
+
+def send_email_actual(recipients, subject, body):
+    import smtplib
+    from email.mime.text import MIMEText
+    
+    settings = load_settings()
+    server = settings.get("smtp_server")
+    port = settings.get("smtp_port", 587)
+    user = settings.get("smtp_user")
+    pwd = settings.get("smtp_pass")
+    
+    if not all([server, user, pwd]):
+        return # Not configured
+        
+    try:
+        msg = MIMEText(body)
+        msg['Subject'] = subject
+        msg['From'] = user
+        msg['To'] = ", ".join(recipients)
+        
+        with smtplib.SMTP(server, port) as s:
+            s.starttls()
+            s.login(user, pwd)
+            s.sendmail(user, recipients, msg.as_string())
+    except Exception as e:
+        print(f"❌ SMTP Error: {str(e)}")
 
 # --- SESSION STATE ---
 if 'logged_in' not in st.session_state:
@@ -246,8 +297,8 @@ else:
         # Menu Permissions
         menu_options = ["Inventory Search", "Recall Management"]
         
-        # WestWorld Admin (Super Admin)
-        if st.session_state['user_role'] == 'admin' and st.session_state['company'] == 'WestWorld':
+        # Super Admin & WestWorld Global Managers
+        if is_global_admin():
             menu_options = ["Inventory Search", "Recall Management", "Assign Inventory", "User Management", "Settings"]
         
         # Client Admin (Can manage their own users)
@@ -266,8 +317,8 @@ else:
         # Determine which company's inventory to show
         target_company = st.session_state['company']
         
-        # If Super Admin, allow selecting any company
-        if st.session_state['user_role'] == 'admin' and st.session_state['company'] == 'WestWorld':
+        # If Global Admin, allow selecting any company
+        if is_global_admin():
             users_df = load_data(USER_DB_FILE)
             company_list = ["All Companies"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
             target_company = st.selectbox("Select Client View:", company_list)
@@ -360,7 +411,7 @@ else:
             if 'Status' not in recall_df.columns: recall_df['Status'] = 'Pending'
             
             # Filter Logic
-            if st.session_state['company'] != 'WestWorld':
+            if not is_global_admin():
                 # Client View: See OWN requests only
                 view_df = recall_df[recall_df['Company'] == st.session_state['company']]
                 st.subheader("Your Request History")
@@ -531,8 +582,13 @@ else:
             with st.expander("Additional Details", expanded=True):
                 new_name = st.text_input("Full Name", placeholder="e.g. John Doe")
 
-            if st.session_state['user_role'] == 'admin':
-                with c4: new_r = st.selectbox("Role", ["viewer", "manager", "admin"])
+            if is_global_admin():
+                # RBAC Logic: Only Super Admin can create other Admins
+                roles = ["viewer", "manager"]
+                if st.session_state['user_role'] == 'admin':
+                    roles.append("admin")
+                
+                with c4: new_r = st.selectbox("Role", roles)
                 with c5: new_co = st.text_input("Company Name")
             else:
                 # Managers can create other managers or viewers for their own company
@@ -556,7 +612,7 @@ else:
         st.markdown("---")
         st.subheader("Existing Users")
         viewable_users = users_df
-        if st.session_state['user_role'] != 'admin':
+        if not is_global_admin():
             viewable_users = users_df[users_df['company'] == st.session_state['company']]
             
         st.dataframe(viewable_users[['username', 'role', 'company', 'email', 'name']], hide_index=True, width="stretch")
@@ -630,3 +686,27 @@ else:
                         st.warning("Rule already exists.")
                 else:
                     st.error("Invalid email address.")
+
+        st.markdown("---")
+        st.subheader("🔐 System SMTP Configuration")
+        st.caption("Required for actual email notifications.")
+        
+        with st.form("smtp_form"):
+            c1, c2 = st.columns([2, 1])
+            with c1: s_host = st.text_input("SMTP Server", value=current_settings.get("smtp_server", ""))
+            with c2: s_port = st.number_input("SMTP Port", value=current_settings.get("smtp_port", 587))
+            
+            c3, c4 = st.columns(2)
+            with c3: s_user = st.text_input("SMTP Username (Email)", value=current_settings.get("smtp_user", ""))
+            with c4: s_pass = st.text_input("SMTP Password / App Password", type="password", value=current_settings.get("smtp_pass", ""))
+            
+            if st.form_submit_button("💾 Save SMTP Settings"):
+                current_settings.update({
+                    "smtp_server": s_host,
+                    "smtp_port": s_port,
+                    "smtp_user": s_user,
+                    "smtp_pass": s_pass
+                })
+                save_settings(current_settings)
+                st.success("✅ SMTP settings saved!")
+                st.rerun()
