@@ -5,7 +5,7 @@ import datetime
 import json
 
 # --- CONFIGURATION & STYLES ---
-st.set_page_config(page_title="WestWorld Inventory Portal (v2.1)", layout="wide", page_icon="🌐")
+st.set_page_config(page_title="WestWorld Inventory Portal (v2.2)", layout="wide", page_icon="🌐")
 
 # Premium "WestWorld" Dark Theme
 st.markdown("""
@@ -111,9 +111,11 @@ def check_login(username, password):
 
 def load_settings():
     if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, 'r') as f:
-            return json.load(f)
-    return {"notification_emails": "admin@westworld.com"}
+        try:
+            with open(SETTINGS_FILE, 'r') as f:
+                return json.load(f)
+        except: pass
+    return {"email_rules": []}
 
 def save_settings(settings):
     with open(SETTINGS_FILE, 'w') as f:
@@ -128,17 +130,26 @@ def process_recall_request(items_df, user, company):
     log_entry['Status'] = 'Pending' # Init status
     
     old_log = load_data(RECALL_LOG_FILE)
-    # Ensure columns match (if old log existed without status)
     if not old_log.empty and 'Status' not in old_log.columns:
         old_log['Status'] = 'Pending'
         
     new_log = pd.concat([old_log, log_entry], ignore_index=True)
     save_data(new_log, RECALL_LOG_FILE)
     
-    # Notify logic (Simulation)
+    # Notify logic: Find matching emails
     settings = load_settings()
-    emails = settings.get("notification_emails", "")
-    return emails
+    rules = settings.get("email_rules", [])
+    
+    recipients = set()
+    for r in rules:
+        trigger_co = r.get("company", "ALL")
+        email = r.get("email", "").strip()
+        
+        if email:
+            if trigger_co == "ALL" or trigger_co == company:
+                recipients.add(email)
+                
+    return ", ".join(recipients) if recipients else "No Notification Configured"
 
 # --- SESSION STATE ---
 if 'logged_in' not in st.session_state:
@@ -158,7 +169,7 @@ if not st.session_state['logged_in']:
         if os.path.exists(LOGO_FILE):
             st.image(LOGO_FILE, width=300)
         else:
-            st.title("🌐 WestWorld Telecom (v2.1)")
+            st.title("🌐 WestWorld Telecom (v2.2)")
             
         st.subheader("Partner Portal Login")
         st.markdown("---")
@@ -218,14 +229,13 @@ else:
         # If Super Admin, allow selecting any company
         if st.session_state['user_role'] == 'admin' and st.session_state['company'] == 'WestWorld':
             users_df = load_data(USER_DB_FILE)
-            # Create list with "All Companies" at the top
             company_list = ["All Companies"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
             target_company = st.selectbox("Select Client View:", company_list)
         
         st.title(f"📦 Inventory: {target_company}")
         df = load_data(MASTER_INVENTORY_FILE)
         
-        if 'owner' in df.columns: # 'owner' column now holds the COMPANY name
+        if 'owner' in df.columns: 
             # Filter by Company
             if target_company == "All Companies":
                 user_df = df.copy()
@@ -327,13 +337,9 @@ else:
                         edited_recall = st.data_editor(active_df, hide_index=True, use_container_width=True, column_config={"Mark Received": st.column_config.CheckboxColumn(required=True)})
                         
                         if st.button("✅ Confirm Receipt"):
-                            # Logic to update Status to 'Completed'
                             to_update = edited_recall[edited_recall['Mark Received']]
                             if not to_update.empty:
-                                # Update CSV (We match by Request Time + Serial + Username ideally, or index if possible, 
-                                # but index changed. For now, matching by Request Time/Requested By row-wise)
                                 for idx, row in to_update.iterrows():
-                                    # Find matching row in ORIGINAL DF (Using Request Time as key approx)
                                     mask = (recall_df['Request Time'] == row['Request Time']) & (recall_df['Requested By'] == row['Requested By'])
                                     recall_df.loc[mask, 'Status'] = 'Completed'
                                 
@@ -352,7 +358,6 @@ else:
         st.info("Upload Master Excel to assign stock to a Client Company.")
         
         users_df = load_data(USER_DB_FILE)
-        # Get list of unique companies (excluding WestWorld)
         client_companies = users_df[users_df['company'] != 'WestWorld']['company'].unique()
         
         with st.form("upload_form"):
@@ -364,7 +369,6 @@ else:
                 with st.spinner("Processing Excel..."):
                     try:
                         xls = pd.ExcelFile(uploaded_file)
-                        # Smart Sheet Detection
                         inv_s = next((s for s in xls.sheet_names if "inv" in s.lower() or "hand" in s.lower()), None)
                         if not inv_s: inv_s = xls.sheet_names[0]
                         
@@ -379,12 +383,9 @@ else:
                             frames.append(df_sold)
                         
                         new_data = pd.concat(frames, ignore_index=True)
-                        new_data['owner'] = target_client_co # Assign by COMPANY now
+                        new_data['owner'] = target_client_co 
                         
-                        # Merge Logic
                         master_df = load_data(MASTER_INVENTORY_FILE)
-                        
-                        # Remove old data for THIS company (Clean overwrite)
                         if not master_df.empty and 'owner' in master_df.columns:
                             master_df = master_df[master_df['owner'] != target_client_co]
                         
@@ -400,25 +401,21 @@ else:
         st.title("👥 User Administration")
         users_df = load_data(USER_DB_FILE)
         
-        # -- CREATE NEW USER --
         st.subheader("Create New User")
         with st.form("user_form"):
             c1, c2, c3, c4 = st.columns(4)
             with c1: new_u = st.text_input("Username")
             with c2: new_p = st.text_input("Password", type="password")
             
-            # Context-Aware Inputs
             if st.session_state['user_role'] == 'admin':
                 with c3: new_r = st.selectbox("Role", ["viewer", "manager", "admin"])
-                with c4: new_co = st.text_input("Company Name") # Admin can type any new company
+                with c4: new_co = st.text_input("Company Name")
             else:
-                # Manager can only create VIEWERS for THEIR company
                 with c3: new_r = st.selectbox("Role", ["viewer"], disabled=True)
                 with c4: new_co = st.text_input("Company", value=st.session_state['company'], disabled=True)
             
             if st.form_submit_button("Save User"):
                 if new_u and new_p and new_co:
-                    # Remove existing if overwriting
                     users_df = users_df[users_df['username'] != new_u]
                     new_row = pd.DataFrame([[new_u, new_p, new_r, new_co]], columns=['username', 'password', 'role', 'company'])
                     save_data(pd.concat([users_df, new_row], ignore_index=True), USER_DB_FILE)
@@ -428,11 +425,7 @@ else:
                     st.warning("Please fill all fields.")
 
         st.markdown("---")
-        
-        # -- LIST / DELETE USERS --
         st.subheader("Existing Users")
-        
-        # Filter visibility
         viewable_users = users_df
         if st.session_state['user_role'] != 'admin':
             viewable_users = users_df[users_df['company'] == st.session_state['company']]
@@ -455,17 +448,56 @@ else:
     # --- PAGE 5: ADMIN SETTINGS ---
     elif page == "Settings":
         st.title("⚙️ Portal Settings")
-        
-        # Notification Settings
         st.subheader("📧 Notification Configuration")
-        st.info("When a notification is sent, it will be addressed to the emails below.")
+        st.info("Add email recipients below. You can assign emails to specific companies or 'ALL' companies.")
         
         current_settings = load_settings()
+        rules = current_settings.get("email_rules", [])
         
-        with st.form("settings_form"):
-            emails = st.text_area("Notification Email Recipients (comma separated)", value=current_settings.get("notification_emails", ""))
+        # Display Current Rules
+        if rules:
+            st.write("#### Active Notification Rules")
+            rule_df = pd.DataFrame(rules)
             
-            if st.form_submit_button("Save Configuration"):
-                new_conf = {"notification_emails": emails}
-                save_settings(new_conf)
-                st.success("✅ Configuration saved successfully!")
+            # Formatted display
+            c_rule, c_btn = st.columns([3, 1])
+            with c_rule:
+                st.dataframe(rule_df, hide_index=True, use_container_width=True)
+            with c_btn:
+                # Simple Delete Logic
+                idx_to_del = st.number_input("Rule Index to Delete", min_value=0, max_value=len(rules)-1, step=1, label_visibility="collapsed")
+                if st.button("🗑️ Delete Rule by Index"):
+                    rules.pop(idx_to_del)
+                    save_settings({"email_rules": rules})
+                    st.rerun()
+        else:
+            st.warning("No notification rules set. Recall requests will not trigger alerts.")
+
+        st.markdown("---")
+        
+        # Add New Rule
+        st.write("#### Add New Recipient")
+        users_df = load_data(USER_DB_FILE)
+        # Companies + ALL
+        client_companies = ["ALL"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
+        
+        with st.form("add_rule_form"):
+            c1, c2 = st.columns(2)
+            with c1: 
+                r_email = st.text_input("Email Address", placeholder="manager@example.com")
+            with c2: 
+                r_company = st.selectbox("Applies To Company", client_companies)
+            
+            if st.form_submit_button("➕ Add Recipient Rule"):
+                if r_email and "@" in r_email:
+                    new_rule = {"company": r_company, "email": r_email}
+                    # Avoid duplicates
+                    if new_rule not in rules:
+                        rules.append(new_rule)
+                        save_settings({"email_rules": rules})
+                        st.success(f"Added {r_email} for {r_company}")
+                        st.rerun()
+                    else:
+                        st.warning("Rule already exists.")
+                else:
+                    st.error("Invalid email address.")
