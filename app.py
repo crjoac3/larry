@@ -197,7 +197,8 @@ else:
         # If Super Admin, allow selecting any company
         if st.session_state['user_role'] == 'admin' and st.session_state['company'] == 'WestWorld':
             users_df = load_data(USER_DB_FILE)
-            company_list = users_df['company'].unique()
+            # Create list with "All Companies" at the top
+            company_list = ["All Companies"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
             target_company = st.selectbox("Select Client View:", company_list)
         
         st.title(f"📦 Inventory: {target_company}")
@@ -205,7 +206,11 @@ else:
         
         if 'owner' in df.columns: # 'owner' column now holds the COMPANY name
             # Filter by Company
-            user_df = df[df['owner'] == target_company].drop(columns=['owner'])
+            if target_company == "All Companies":
+                user_df = df.copy()
+                user_df.rename(columns={'owner': 'Company'}, inplace=True) # Show Company Column
+            else:
+                user_df = df[df['owner'] == target_company].drop(columns=['owner'])
             
             if not user_df.empty:
                 # View Filters
