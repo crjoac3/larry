@@ -332,24 +332,91 @@ else:
                     if active_df.empty:
                         st.success("🎉 All caught up! No pending recalls.")
                     else:
-                        st.info("Select items below to mark them as RECEIVED/COMPLETED.")
+                        st.info("Select items to mark as RECEIVED. ⚠️ This will REMOVE them from the Master Inventory.")
                         active_df.insert(0, "Mark Received", False)
                         edited_recall = st.data_editor(active_df, hide_index=True, use_container_width=True, column_config={"Mark Received": st.column_config.CheckboxColumn(required=True)})
                         
-                        if st.button("✅ Confirm Receipt"):
+                        if st.button("✅ Confirm Receipt & Remove from Inventory"):
                             to_update = edited_recall[edited_recall['Mark Received']]
                             if not to_update.empty:
-                                for idx, row in to_update.iterrows():
-                                    mask = (recall_df['Request Time'] == row['Request Time']) & (recall_df['Requested By'] == row['Requested By'])
-                                    recall_df.loc[mask, 'Status'] = 'Completed'
+                                master_inventory = load_data(MASTER_INVENTORY_FILE)
+                                removed_count = 0
                                 
+                                for idx, row in to_update.iterrows():
+                                    # 1. Update Status in Recall Log
+                                    # Strict matching using Serial Number if available, otherwise fall back to everything else
+                                    mask = (recall_df['Request Time'] == row['Request Time']) & (recall_df['Requested By'] == row['Requested By'])
+                                    
+                                    if 'Serial Number' in row and not pd.isna(row['Serial Number']):
+                                        mask = mask & (recall_df['Serial Number'] == row['Serial Number'])
+                                    elif 'PO' in row and not pd.isna(row['PO']):
+                                        mask = mask & (recall_df['PO'] == row['PO'])
+
+                                    recall_df.loc[mask, 'Status'] = 'Completed'
+                                    
+                                    # 2. Remove from Master Inventory
+                                    if not master_inventory.empty:
+                                        inv_mask = None
+                                        # Verify we match the exact item in inventory to avoid deleting duplicates wrongly
+                                        if 'Serial Number' in row and 'Serial Number' in master_inventory.columns:
+                                            inv_mask = master_inventory['Serial Number'] == row['Serial Number']
+                                        elif 'PO' in row and 'PO' in master_inventory.columns: # Fallback if no serial
+                                            inv_mask = master_inventory['PO'] == row['PO']
+                                            
+                                        if inv_mask is not None and inv_mask.any():
+                                            master_inventory = master_inventory[~inv_mask]
+                                            removed_count += 1
+
                                 save_data(recall_df, RECALL_LOG_FILE)
-                                st.success("Updated!")
+                                save_data(master_inventory, MASTER_INVENTORY_FILE)
+                                st.success(f"Updated! {removed_count} items removed from Master Inventory.")
                                 st.rerun()
                 else:
                     # History
-                    history_df = recall_df[recall_df['Status'] == 'Completed']
-                    st.dataframe(history_df, hide_index=True, use_container_width=True)
+                    history_df = recall_df[recall_df['Status'] == 'Completed'].copy()
+                    if history_df.empty:
+                        st.info("No completed history.")
+                    else:
+                        st.write("### Completed Recalls")
+                        st.warning("⚠️ 'Restock' will add the item BACK to the Master Inventory and set status to 'Restocked'.")
+                        
+                        history_df.insert(0, "Restock", False)
+                        edited_history = st.data_editor(
+                            history_df, 
+                            hide_index=True, 
+                            use_container_width=True,
+                            column_config={"Restock": st.column_config.CheckboxColumn(required=True)}
+                        )
+                        
+                        if st.button("🔄 Restock Selected Items"):
+                            to_restock = edited_history[edited_history['Restock']]
+                            if not to_restock.empty:
+                                master_inventory = load_data(MASTER_INVENTORY_FILE)
+                                restored_count = 0
+                                
+                                for idx, row in to_restock.iterrows():
+                                    # 1. Update Recall Log Status
+                                    mask = (recall_df['Request Time'] == row['Request Time']) & (recall_df['Requested By'] == row['Requested By'])
+                                    
+                                    if 'Serial Number' in row and not pd.isna(row['Serial Number']):
+                                        mask = mask & (recall_df['Serial Number'] == row['Serial Number'])
+
+                                    recall_df.loc[mask, 'Status'] = 'Restocked'
+                                    
+                                    # 2. Add back to Master Inventory
+                                    # Prepare row: drop recall-specific columns
+                                    clean_row = row.drop(labels=['Mark Received', 'Restock', 'Requested By', 'Company', 'Request Time', 'Status'], errors='ignore')
+                                    # Ensure owner is set correctly (use the Company from the log)
+                                    clean_row['owner'] = row['Company']
+                                    
+                                    # Append
+                                    master_inventory = pd.concat([master_inventory, pd.DataFrame([clean_row])], ignore_index=True)
+                                    restored_count += 1
+                                    
+                                save_data(recall_df, RECALL_LOG_FILE)
+                                save_data(master_inventory, MASTER_INVENTORY_FILE)
+                                st.success(f"Restocked {restored_count} items back to inventory!")
+                                st.rerun()
 
 
     # --- PAGE 3: ASSIGN INVENTORY (SUPER ADMIN ONLY) ---
