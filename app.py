@@ -535,7 +535,8 @@ else:
                 with c4: new_r = st.selectbox("Role", ["viewer", "manager", "admin"])
                 with c5: new_co = st.text_input("Company Name")
             else:
-                with c4: new_r = st.selectbox("Role", ["viewer"], disabled=True)
+                # Managers can create other managers or viewers for their own company
+                with c4: new_r = st.selectbox("Role", ["viewer", "manager"])
                 with c5: new_co = st.text_input("Company", value=st.session_state['company'], disabled=True)
             
             if st.form_submit_button("Save User"):
