@@ -112,7 +112,11 @@ repair_user_database()
 def load_data(file_path, default_cols=None):
     if os.path.exists(file_path):
         try:
-            return pd.read_csv(file_path)
+            df = pd.read_csv(file_path)
+            # Cleanup: Remove UI artifact columns if accidentally saved
+            if 'Select' in df.columns:
+                df = df.drop(columns=['Select'])
+            return df
         except:
             return pd.DataFrame(columns=default_cols)
     return pd.DataFrame(columns=default_cols)
@@ -145,6 +149,8 @@ def save_settings(settings):
 def process_recall_request(items_df, user, company):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = items_df.copy()
+    if 'Select' in log_entry.columns:
+        log_entry = log_entry.drop(columns=['Select'])
     log_entry['Requested By'] = user
     log_entry['Company'] = company
     log_entry['Request Time'] = timestamp
@@ -297,11 +303,13 @@ else:
 
                 # Interactive Data Table
                 if filter_mode == "Equipment On-Hand":
-                    display_df.insert(0, "Select", False)
+                    st.caption("Select items to request a recall:")
+                    if "Select" not in display_df.columns:
+                        display_df.insert(0, "Select", False)
                     edited = st.data_editor(
                         display_df, 
                         hide_index=True, 
-                        use_container_width=True, 
+                        width="stretch", 
                         column_config={
                             "Select": st.column_config.CheckboxColumn(required=True),
                             "Sales Price": st.column_config.NumberColumn(format="$%.2f")
@@ -315,7 +323,7 @@ else:
                             st.balloons()
                             st.success(f"✅ Recall request submitted! Notifications sent to: {emails}")
                 else:
-                    st.dataframe(display_df, hide_index=True, use_container_width=True)
+                    st.dataframe(display_df, hide_index=True, width="stretch")
                 
                 st.download_button("📥 Export to CSV", display_df.to_csv(index=False).encode('utf-8'), "inventory_export.csv", "text/csv")
             else:
@@ -340,7 +348,7 @@ else:
                 # Client View: See OWN requests only
                 view_df = recall_df[recall_df['Company'] == st.session_state['company']]
                 st.subheader("Your Request History")
-                st.dataframe(view_df.sort_values('Request Time', ascending=False), hide_index=True, use_container_width=True)
+                st.dataframe(view_df.sort_values('Request Time', ascending=False), hide_index=True, width="stretch")
             else:
                 # Super Admin View
                 st.subheader("Active Recall Queue")
@@ -355,7 +363,7 @@ else:
                     else:
                         st.info("Select items to mark as RECEIVED. ⚠️ This will REMOVE them from the Master Inventory.")
                         active_df.insert(0, "Mark Received", False)
-                        edited_recall = st.data_editor(active_df, hide_index=True, use_container_width=True, column_config={"Mark Received": st.column_config.CheckboxColumn(required=True)})
+                        edited_recall = st.data_editor(active_df, hide_index=True, width="stretch", column_config={"Mark Received": st.column_config.CheckboxColumn(required=True)})
                         
                         if st.button("✅ Confirm Receipt & Remove from Inventory"):
                             to_update = edited_recall[edited_recall['Mark Received']]
@@ -406,7 +414,7 @@ else:
                         edited_history = st.data_editor(
                             history_df, 
                             hide_index=True, 
-                            use_container_width=True,
+                            width="stretch",
                             column_config={"Restock": st.column_config.CheckboxColumn(required=True)}
                         )
                         
@@ -422,7 +430,13 @@ else:
                                         recall_df.loc[idx, 'Status'] = 'Restocked'
                                     
                                     # 2. Add back to Master Inventory
-                                    clean_row = row.drop(labels=['Mark Received', 'Restock', 'Requested By', 'Company', 'Request Time', 'Status'], errors='ignore')
+                                    clean_row = row.drop(labels=['Mark Received', 'Restock', 'Requested By', 'Company', 'Request Time', 'Status', 'Select'], errors='ignore')
+                                    
+                                    # Ensure we have the correct columns for master inventory
+                                    # We need to map 'Company' back to 'owner' if it's not present (it was dropped above)
+                                    # But wait, original master inventory uses 'owner'.
+                                    # The 'row' here comes from history_df which has 'Company' (from process_recall_request).
+                                    # So we need to put 'owner' back.
                                     clean_row['owner'] = row['Company']
                                     
                                     # Force 'ON HAND' status if not present (logic assumption)
@@ -522,7 +536,7 @@ else:
         if st.session_state['user_role'] != 'admin':
             viewable_users = users_df[users_df['company'] == st.session_state['company']]
             
-        st.dataframe(viewable_users[['username', 'role', 'company', 'email']], hide_index=True, use_container_width=True)
+        st.dataframe(viewable_users[['username', 'role', 'company', 'email']], hide_index=True, width="stretch")
         
         col_del, _ = st.columns(2)
         with col_del:
@@ -554,7 +568,7 @@ else:
             # Formatted display
             c_rule, c_btn = st.columns([3, 1])
             with c_rule:
-                st.dataframe(rule_df, hide_index=True, use_container_width=True)
+                st.dataframe(rule_df, hide_index=True, width="stretch")
             with c_btn:
                 # Simple Delete Logic
                 idx_to_del = st.number_input("Rule Index to Delete", min_value=0, max_value=len(rules)-1, step=1, label_visibility="collapsed")
