@@ -137,7 +137,7 @@ if not st.session_state['logged_in']:
         if os.path.exists(LOGO_FILE):
             st.image(LOGO_FILE, width=300)
         else:
-            st.title("🌐 WestWorld Telecom")
+            st.title("🌐 WestWorld Telecom (v2.0)")
             
         st.subheader("Partner Portal Login")
         st.markdown("---")
