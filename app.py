@@ -318,13 +318,15 @@ else:
         # Menu Permissions
         menu_options = ["Inventory Search", "Recall Management"]
         
+        menu_options = ["Inventory Search", "Recall Management", "My Profile"]
+        
         # Super Admin & WestWorld Global Managers
         if is_global_admin():
-            menu_options = ["Inventory Search", "Recall Management", "Assign Inventory", "User Management", "Settings"]
+            menu_options = ["Inventory Search", "Recall Management", "User Management", "Settings", "My Profile"]
         
         # Client Admin / Manager (Can manage their own users and branding)
         elif st.session_state['user_role'] == 'manager':
-            menu_options = ["Inventory Search", "Recall Management", "User Management", "Settings"]
+            menu_options = ["Inventory Search", "Recall Management", "User Management", "Settings", "My Profile"]
             
         page = st.radio("Navigate", menu_options)
             
@@ -591,65 +593,132 @@ else:
         st.title("👥 User Administration")
         users_df = load_data(USER_DB_FILE)
         
-        st.subheader("Create New User")
-        with st.form("user_form"):
-            c1, c2, c3 = st.columns(3)
-            c4, c5 = st.columns(2)
-            
-            with c1: new_u = st.text_input("Username")
-            with c2: new_p = st.text_input("Password", type="password")
-            with c3: new_email = st.text_input("Email (For Recovery)")
-            
-            with st.expander("Additional Details", expanded=True):
-                new_name = st.text_input("Full Name", placeholder="e.g. John Doe")
-
-            if is_global_admin():
-                # RBAC Logic: Only Super Admin can create other Admins
-                roles = ["viewer", "manager"]
-                if st.session_state['user_role'] == 'admin':
-                    roles.append("admin")
-                
-                with c4: new_r = st.selectbox("Role", roles)
-                with c5: new_co = st.text_input("Company Name")
-            else:
-                # Managers can create other managers or viewers for their own company
-                with c4: new_r = st.selectbox("Role", ["viewer", "manager"])
-                with c5: new_co = st.text_input("Company", value=st.session_state['company'], disabled=True)
-            
-            if st.form_submit_button("Save User"):
-                if new_u and new_p and new_co:
-                    users_df = users_df[users_df['username'] != new_u]
-                    # Ensure columns exist in dataframe before appending
-                    if 'email' not in users_df.columns: users_df['email'] = ''
-                    if 'name' not in users_df.columns: users_df['name'] = ''
-                    
-                    new_row = pd.DataFrame([[new_u, new_p, new_r, new_co, new_email, new_name]], columns=['username', 'password', 'role', 'company', 'email', 'name'])
-                    save_data(pd.concat([users_df, new_row], ignore_index=True), USER_DB_FILE)
-                    st.success(f"✅ User {new_u} saved!")
-                    st.rerun()
-                else:
-                    st.warning("Please fill all fields (Username, Password, Company).")
-
-        st.markdown("---")
-        st.subheader("Existing Users")
-        viewable_users = users_df
-        if not is_global_admin():
-            viewable_users = users_df[users_df['company'] == st.session_state['company']]
-            
-        st.dataframe(viewable_users[['username', 'role', 'company', 'email', 'name']], hide_index=True, width="stretch")
+        # Tabbed interface for better organization
+        tab1, tab2, tab3 = st.tabs(["➕ Create User", "✏️ Edit/Reset User", "📋 Existing Users"])
         
-        col_del, _ = st.columns(2)
-        with col_del:
-            d_user = st.selectbox("Select User to Delete", viewable_users['username'].unique())
-            if st.button("🗑️ Delete Selected User"):
-                if d_user == 'admin':
-                    st.error("⛔ Cannot delete Super Admin.")
-                elif d_user == st.session_state['username']:
-                    st.error("⛔ Cannot delete yourself.")
+        with tab1:
+            st.subheader("Create New User")
+            with st.form("create_user_form"):
+                c1, c2, c3 = st.columns(3)
+                c4, c5 = st.columns(2)
+                
+                with c1: new_u = st.text_input("Username")
+                with c2: new_p = st.text_input("Password", type="password")
+                with c3: new_email = st.text_input("Email (For Recovery)")
+                
+                with st.expander("Additional Details", expanded=True):
+                    new_name = st.text_input("Full Name", placeholder="e.g. John Doe")
+
+                if is_global_admin():
+                    # RBAC Logic: Only Super Admin can create other Admins
+                    roles = ["viewer", "manager"]
+                    if st.session_state['user_role'] == 'admin':
+                        roles.append("admin")
+                    
+                    with c4: new_r = st.selectbox("Role", roles)
+                    with c5: 
+                        # Get existing companies from inventory or users
+                        inv_data = load_data(MASTER_INVENTORY_FILE)
+                        known_cos = sorted(list(set(inv_data['owner'].unique()) | set(users_df['company'].unique())))
+                        new_co = st.selectbox("Company Name", known_cos)
                 else:
-                    save_data(users_df[users_df['username'] != d_user], USER_DB_FILE)
-                    st.success(f"User {d_user} deleted.")
-                    st.rerun()
+                    # Managers can create other managers or viewers for their own company
+                    with c4: new_r = st.selectbox("Role", ["viewer", "manager"])
+                    with c5: new_co = st.text_input("Company", value=st.session_state['company'], disabled=True)
+                
+                if st.form_submit_button("Save New User"):
+                    if new_u and new_p and new_co:
+                        if new_u in users_df['username'].values:
+                            st.error("User already exists.")
+                        else:
+                            # Ensure columns exist
+                            if 'email' not in users_df.columns: users_df['email'] = ''
+                            if 'name' not in users_df.columns: users_df['name'] = ''
+                            
+                            new_row = pd.DataFrame([[new_u, new_p, new_r, new_co, new_email, new_name]], columns=['username', 'password', 'role', 'company', 'email', 'name'])
+                            save_data(pd.concat([users_df, new_row], ignore_index=True), USER_DB_FILE)
+                            st.success(f"✅ User {new_u} created!")
+                            st.rerun()
+                    else:
+                        st.warning("Please fill required fields (Username, Password).")
+
+        with tab2:
+            st.subheader("Edit User Details / Reset Password")
+            viewable_users_edit = users_df
+            if not is_global_admin():
+                viewable_users_edit = users_df[users_df['company'] == st.session_state['company']]
+            
+            target_user_edit = st.selectbox("Select User to Edit", sorted(viewable_users_edit['username'].unique()), key="edit_selector")
+            
+            if target_user_edit:
+                user_data = users_df[users_df['username'] == target_user_edit].iloc[0]
+                
+                with st.form("edit_user_form"):
+                    e_name = st.text_input("Full Name", value=user_data.get('name', ''))
+                    e_email = st.text_input("Email Address", value=user_data.get('email', ''))
+                    
+                    # Role/Company change only for Super Admin or if editing someone in company
+                    if is_global_admin() and target_user_edit != 'admin':
+                        inv_data = load_data(MASTER_INVENTORY_FILE)
+                        known_cos = sorted(list(set(inv_data['owner'].unique()) | set(users_df['company'].unique())))
+                        e_comp = st.selectbox("Company", known_cos, index=known_cos.index(user_data['company']) if user_data['company'] in known_cos else 0)
+                        
+                        roles_list = ['viewer', 'manager', 'admin']
+                        e_role = st.selectbox("Role", roles_list, index=roles_list.index(user_data['role']) if user_data['role'] in roles_list else 0)
+                    else:
+                        e_comp = user_data['company']
+                        e_role = user_data['role']
+                        st.info(f"Role: **{e_role}** | Company: **{e_comp}**")
+
+                    st.markdown("---")
+                    st.write("🔑 **Password Management**")
+                    new_pw = st.text_input("Directly Set New Password (Leave blank to keep current)", type="password")
+                    
+                    if st.form_submit_button("💾 Save Changes & Update User"):
+                        # Update the dataframe
+                        idx = users_df[users_df['username'] == target_user_edit].index[0]
+                        users_df.at[idx, 'name'] = e_name
+                        users_df.at[idx, 'email'] = e_email
+                        users_df.at[idx, 'company'] = e_comp
+                        users_df.at[idx, 'role'] = e_role
+                        
+                        pw_changed = False
+                        if new_pw:
+                            users_df.at[idx, 'password'] = new_pw
+                            pw_changed = True
+                        
+                        save_data(users_df, USER_DB_FILE)
+                        st.success(f"✅ User {target_user_edit} updated successfully!")
+                        
+                        # Send email if password changed and SMTP is set
+                        if pw_changed and e_email:
+                            msg = f"Hello {e_name or target_user_edit},\n\nYour password for the WestWorld Telecom Consignment Portal has been updated by an administrator.\n\nIf you did not request this, please contact support."
+                            send_email_actual(e_email, "Account Update Notification", msg)
+                            st.info("📧 Update notification sent to user.")
+                            
+                        st.rerun()
+
+        with tab3:
+            st.subheader("Existing Accounts")
+            viewable_users_list = users_df
+            if not is_global_admin():
+                viewable_users_list = users_df[users_df['company'] == st.session_state['company']]
+                
+            st.dataframe(viewable_users_list[['username', 'role', 'company', 'email', 'name']], hide_index=True, width="stretch")
+            
+            st.markdown("---")
+            col_del, _ = st.columns(2)
+            with col_del:
+                d_user = st.selectbox("Select User to Delete", viewable_users_list['username'].unique(), key="del_selector")
+                if st.button("🗑️ Permanent Delete"):
+                    if d_user == 'admin':
+                        st.error("⛔ Cannot delete Super Admin.")
+                    elif d_user == st.session_state['username']:
+                        st.error("⛔ Cannot delete yourself.")
+                    else:
+                        save_data(users_df[users_df['username'] != d_user], USER_DB_FILE)
+                        st.success(f"User {d_user} deleted.")
+                        st.rerun()
                     
     # --- PAGE 5: ADMIN SETTINGS ---
     elif page == "Settings":
@@ -770,3 +839,50 @@ else:
                     save_settings(current_settings)
                     st.success("✅ SMTP settings saved!")
                     st.rerun()
+
+    # --- PAGE 6: MY PROFILE ---
+    elif page == "My Profile":
+        st.title("👤 My Profile")
+        users_df = load_data(USER_DB_FILE)
+        current_username = st.session_state['username']
+        user_idx = users_df[users_df['username'] == current_username].index[0]
+        user_row = users_df.iloc[user_idx]
+        
+        col_prof1, col_prof2 = st.columns(2)
+        
+        with col_prof1:
+            st.subheader("Update Details")
+            with st.form("update_profile_form"):
+                p_name = st.text_input("Full Name", value=user_row.get('name', ''))
+                p_email = st.text_input("Email Address", value=user_row.get('email', ''))
+                
+                if st.form_submit_button("💾 Save Profile"):
+                    users_df.at[user_idx, 'name'] = p_name
+                    users_df.at[user_idx, 'email'] = p_email
+                    save_data(users_df, USER_DB_FILE)
+                    st.session_state['name'] = p_name # Update session state too
+                    st.success("Profile updated!")
+                    st.rerun()
+                    
+        with col_prof2:
+            st.subheader("Change Password")
+            with st.form("change_password_form"):
+                curr_pw = st.text_input("Current Password", type="password")
+                new_pw1 = st.text_input("New Password", type="password")
+                new_pw2 = st.text_input("Confirm New Password", type="password")
+                
+                if st.form_submit_button("🔐 Update Password"):
+                    if curr_pw != user_row['password']:
+                        st.error("Incorrect current password.")
+                    elif new_pw1 != new_pw2:
+                        st.error("New passwords do not match.")
+                    elif not new_pw1:
+                        st.warning("New password cannot be empty.")
+                    else:
+                        users_df.at[user_idx, 'password'] = new_pw1
+                        save_data(users_df, USER_DB_FILE)
+                        st.success("Password changed successfully!")
+                        
+                        # Notify user via email
+                        send_email_actual(p_email, "Password Changed", "Your password for the WestWorld Telecom Portal has been successfully changed.")
+                        st.rerun()
