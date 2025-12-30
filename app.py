@@ -152,7 +152,13 @@ def process_recall_request(items_df, user, company):
     if 'Select' in log_entry.columns:
         log_entry = log_entry.drop(columns=['Select'])
     log_entry['Requested By'] = user
-    log_entry['Company'] = company
+    log_entry['Company'] = company # Fallback if not present
+    # If the dataframe already has a 'Company' column (e.g. All Companies view), use that.
+    # Otherwise use the passed context (e.g. Specific view where we know the target)
+    if 'Company' in items_df.columns:
+        log_entry['Company'] = items_df['Company']
+    else:
+        log_entry['Company'] = company
     log_entry['Request Time'] = timestamp
     log_entry['Status'] = 'Pending' # Init status
     
@@ -319,7 +325,8 @@ else:
                     if not edited[edited.Select].empty:
                         st.markdown("### Recall Request")
                         if st.button(f"🚀 Request Recall for {len(edited[edited.Select])} Item(s)"):
-                            emails = process_recall_request(edited[edited.Select], st.session_state['username'], st.session_state['company'])
+                            # Pass target_company to ensure correct attribution (not just who is logged in)
+                            emails = process_recall_request(edited[edited.Select], st.session_state['username'], target_company)
                             st.balloons()
                             st.success(f"✅ Recall request submitted! Notifications sent to: {emails}")
                 else:
