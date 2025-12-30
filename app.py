@@ -66,23 +66,44 @@ LOGO_FILE = 'logo.jpg'
 def repair_user_database():
     """Checks if users.csv validation state. If broken or old schema, resets or attempts migration."""
     reset_needed = False
+    migrated = False
+    
     if not os.path.exists(USER_DB_FILE):
         reset_needed = True
     else:
         try:
             df = pd.read_csv(USER_DB_FILE)
-            # Check for new 'company' column
-            req_cols = ['username', 'password', 'role', 'company']
-            if df.empty or not all(col in df.columns for col in req_cols):
-                reset_needed = True
+            # Check for new 'company' and 'email' columns
+            req_cols = ['username', 'password', 'role', 'company', 'email']
+            
+            # Migration Logic: Add missing columns if file exists but schema is old
+            if not df.empty:
+                save_required = False
+                if 'company' not in df.columns:
+                    df['company'] = 'WestWorld' # Default fallback
+                    save_required = True
+                if 'email' not in df.columns:
+                    df['email'] = '' # Default empty
+                    save_required = True
+                
+                if save_required:
+                    df.to_csv(USER_DB_FILE, index=False)
+                    migrated = True
+                    print(f"⚠️ System migrated: {USER_DB_FILE} updated with new columns.")
+            
+            # Re-verify
+            if not all(col in df.columns for col in req_cols):
+                # If still failing (e.g. empty file), reset
+                if not migrated: reset_needed = True
+                
         except:
             reset_needed = True
 
     if reset_needed:
         # Create a fresh file with WestWorld Super Admin
         with open(USER_DB_FILE, 'w') as f:
-            f.write("username,password,role,company\n")
-            f.write("admin,admin123,admin,WestWorld\n")
+            f.write("username,password,role,company,email\n")
+            f.write("admin,admin123,admin,WestWorld,admin@westworld.com\n")
         print(f"⚠️ System repaired: {USER_DB_FILE} was recreated with new schema.")
 
 repair_user_database()
@@ -100,7 +121,7 @@ def save_data(df, file_path):
     df.to_csv(file_path, index=False)
 
 def check_login(username, password):
-    users = load_data(USER_DB_FILE, ['username', 'password', 'role', 'company'])
+    users = load_data(USER_DB_FILE, ['username', 'password', 'role', 'company', 'email'])
     user_match = users[users['username'] == username]
     
     if not user_match.empty:
@@ -468,26 +489,32 @@ else:
         
         st.subheader("Create New User")
         with st.form("user_form"):
-            c1, c2, c3, c4 = st.columns(4)
+            c1, c2, c3 = st.columns(3)
+            c4, c5 = st.columns(2)
+            
             with c1: new_u = st.text_input("Username")
             with c2: new_p = st.text_input("Password", type="password")
+            with c3: new_email = st.text_input("Email (For Recovery)")
             
             if st.session_state['user_role'] == 'admin':
-                with c3: new_r = st.selectbox("Role", ["viewer", "manager", "admin"])
-                with c4: new_co = st.text_input("Company Name")
+                with c4: new_r = st.selectbox("Role", ["viewer", "manager", "admin"])
+                with c5: new_co = st.text_input("Company Name")
             else:
-                with c3: new_r = st.selectbox("Role", ["viewer"], disabled=True)
-                with c4: new_co = st.text_input("Company", value=st.session_state['company'], disabled=True)
+                with c4: new_r = st.selectbox("Role", ["viewer"], disabled=True)
+                with c5: new_co = st.text_input("Company", value=st.session_state['company'], disabled=True)
             
             if st.form_submit_button("Save User"):
                 if new_u and new_p and new_co:
                     users_df = users_df[users_df['username'] != new_u]
-                    new_row = pd.DataFrame([[new_u, new_p, new_r, new_co]], columns=['username', 'password', 'role', 'company'])
+                    # Ensure 'email' column exists in dataframe before appending
+                    if 'email' not in users_df.columns: users_df['email'] = ''
+                    
+                    new_row = pd.DataFrame([[new_u, new_p, new_r, new_co, new_email]], columns=['username', 'password', 'role', 'company', 'email'])
                     save_data(pd.concat([users_df, new_row], ignore_index=True), USER_DB_FILE)
                     st.success(f"✅ User {new_u} saved!")
                     st.rerun()
                 else:
-                    st.warning("Please fill all fields.")
+                    st.warning("Please fill all fields (Username, Password, Company).")
 
         st.markdown("---")
         st.subheader("Existing Users")
@@ -495,7 +522,7 @@ else:
         if st.session_state['user_role'] != 'admin':
             viewable_users = users_df[users_df['company'] == st.session_state['company']]
             
-        st.dataframe(viewable_users[['username', 'role', 'company']], hide_index=True, use_container_width=True)
+        st.dataframe(viewable_users[['username', 'role', 'company', 'email']], hide_index=True, use_container_width=True)
         
         col_del, _ = st.columns(2)
         with col_del:
