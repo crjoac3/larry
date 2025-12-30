@@ -320,7 +320,7 @@ else:
         
         # Super Admin & WestWorld Global Managers
         if is_global_admin():
-            menu_options = ["Inventory Search", "Recall Management", "User Management", "Settings", "My Profile"]
+            menu_options = ["Inventory Search", "Recall Management", "Inventory Management", "User Management", "Settings", "My Profile"]
         
         # Client Admin / Manager (Can manage their own users and branding)
         elif st.session_state['user_role'] == 'manager':
@@ -542,9 +542,9 @@ else:
                                 st.rerun()
 
 
-    # --- PAGE 3: ASSIGN INVENTORY (SUPER ADMIN ONLY) ---
-    elif page == "Assign Inventory":
-        st.title("📂 Assign Inventory")
+    # --- PAGE 3: INVENTORY MANAGEMENT (SUPER ADMIN ONLY) ---
+    elif page == "Inventory Management":
+        st.title("📂 Inventory Management")
         st.info("Upload Master Excel to assign stock to a Client Company.")
         
         users_df = load_data(USER_DB_FILE)
