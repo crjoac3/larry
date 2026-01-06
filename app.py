@@ -395,8 +395,11 @@ else:
                 
                 val = "N/A"
                 if 'Sales Price' in display_df.columns:
-                    try: val = f"${display_df['Sales Price'].replace(r'[\$,]', '', regex=True).astype(float).sum():,.2f}"
-                    except: pass
+                    try:
+                        total_sum = display_df['Sales Price'].replace(r'[\$,]', '', regex=True).astype(float).sum()
+                        val = f"${total_sum:,.2f}"
+                    except:
+                        pass
                 m3.metric("Total Asset Value", val)
                 
                 st.markdown("---")
