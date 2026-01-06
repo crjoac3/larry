@@ -59,6 +59,7 @@ st.markdown("""
 USER_DB_FILE = 'users.csv'
 MASTER_INVENTORY_FILE = 'master_inventory.csv'
 RECALL_LOG_FILE = 'recall_requests_log.csv'
+AUDIT_LOG_FILE = 'audit_requests_log.csv'
 SETTINGS_FILE = 'settings.json'
 LOGO_FILE = 'logo.jpg'
 
@@ -231,6 +232,26 @@ def process_recall_request(items_df, user, company):
                 
     return ", ".join(recipients) if recipients else "No Notification Configured"
 
+def process_audit_request(items_df, user, company, comment):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = items_df.copy()
+    if 'Select' in log_entry.columns:
+        log_entry = log_entry.drop(columns=['Select'])
+    
+    log_entry['Requested By'] = user
+    log_entry['Company'] = company
+    if 'Company' in items_df.columns:
+        log_entry['Company'] = items_df['Company']
+        
+    log_entry['Request Time'] = timestamp
+    log_entry['Audit Comment'] = comment
+    log_entry['Status'] = 'Pending'
+    
+    old_log = load_data(AUDIT_LOG_FILE)
+    new_log = pd.concat([old_log, log_entry], ignore_index=True)
+    save_data(new_log, AUDIT_LOG_FILE)
+    return True
+
 def send_email_actual(recipients, subject, body):
     import smtplib
     from email.mime.text import MIMEText
@@ -316,15 +337,15 @@ else:
         st.divider()
         
         # Menu Permissions
-        menu_options = ["Inventory Search", "Recall Management", "My Profile"]
+        menu_options = ["Inventory Search", "Recall Management", "Audit Management", "My Profile"]
         
         # Super Admin & WestWorld Global Managers
         if is_global_admin():
-            menu_options = ["Inventory Search", "Recall Management", "Inventory Management", "User Management", "Settings", "My Profile"]
+            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "Inventory Management", "User Management", "Settings", "My Profile"]
         
         # Client Admin / Manager (Can manage their own users and branding)
         elif st.session_state['user_role'] == 'manager':
-            menu_options = ["Inventory Search", "Recall Management", "User Management", "Settings", "My Profile"]
+            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "User Management", "Settings", "My Profile"]
             
         page = st.radio("Navigate", menu_options)
             
@@ -542,7 +563,92 @@ else:
                                 st.rerun()
 
 
-    # --- PAGE 3: INVENTORY MANAGEMENT (SUPER ADMIN ONLY) ---
+    # --- PAGE 3: AUDIT MANAGEMENT ---
+    elif page == "Audit Management":
+        target_company = st.session_state['company']
+        
+        # If Global Admin, allow selecting any company
+        if is_global_admin():
+            users_df = load_data(USER_DB_FILE)
+            company_list = ["All Companies"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
+            target_company = st.selectbox("Select Client View for Audit:", company_list)
+        
+        st.title(f"🔍 Audit Management: {target_company}")
+        st.info("Select items to request an audit. These items will remain in your inventory.")
+        
+        df = load_data(MASTER_INVENTORY_FILE)
+        
+        if 'owner' in df.columns:
+            # Filter by Company
+            if target_company == "All Companies":
+                user_df = df.copy()
+                user_df.rename(columns={'owner': 'Company'}, inplace=True)
+            else:
+                user_df = df[df['owner'] == target_company].drop(columns=['owner'])
+            
+            if not user_df.empty:
+                # Search Bar for focusing audit
+                search_term = st.text_input("🔍 Search items to audit...", placeholder="Serial Number, Model, PO...")
+                if search_term:
+                    mask = user_df.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)
+                    user_df = user_df[mask]
+
+                # Selection Table
+                st.caption("Select items for audit:")
+                if "Select" not in user_df.columns:
+                    user_df.insert(0, "Select", False)
+                
+                edited_audit = st.data_editor(
+                    user_df,
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "Select": st.column_config.CheckboxColumn(required=True),
+                        "Sales Price": st.column_config.NumberColumn(format="$%.2f")
+                    }
+                )
+                
+                selected_items = edited_audit[edited_audit.Select]
+                
+                if not selected_items.empty:
+                    st.markdown("---")
+                    st.subheader("Audit Details")
+                    audit_comment = st.text_area("What is the reason for this audit request?", placeholder="Enter details here...")
+                    
+                    if st.button(f"🚩 Submit Audit Request for {len(selected_items)} Item(s)", type="primary"):
+                        if not audit_comment.strip():
+                            st.warning("Please provide a comment for the audit request.")
+                        else:
+                            requester_name = st.session_state.get('name', st.session_state['username'])
+                            process_audit_request(selected_items, requester_name, target_company, audit_comment)
+                            st.balloons()
+                            st.success("✅ Audit request submitted successfully! Items remain in your inventory search.")
+                            st.rerun()
+            else:
+                st.warning(f"No inventory records found for **{target_company}**.")
+        else:
+            st.info("Master Inventory Database is empty.")
+            
+        st.divider()
+        st.subheader("📋 Audit History")
+        audit_history_df = load_data(AUDIT_LOG_FILE)
+        
+        if audit_history_df.empty:
+            st.info("No audit requests logged yet.")
+        else:
+            if not is_global_admin():
+                # Filter for own company
+                display_history = audit_history_df[audit_history_df['Company'] == st.session_state['company']]
+            else:
+                display_history = audit_history_df
+                
+            if display_history.empty:
+                st.info("No audit history for this company.")
+            else:
+                st.dataframe(display_history.sort_values('Request Time', ascending=False), hide_index=True, width="stretch")
+
+
+    # --- PAGE 4: INVENTORY MANAGEMENT (SUPER ADMIN ONLY) ---
     elif page == "Inventory Management":
         st.title("📂 Inventory Management")
         st.info("Upload Master Excel to assign stock to a Client Company.")
@@ -586,7 +692,7 @@ else:
                     except Exception as e:
                         st.error(f"❌ Error processing file: {str(e)}")
 
-    # --- PAGE 4: USER MANAGEMENT ---
+    # --- PAGE 5: USER MANAGEMENT ---
     elif page == "User Management":
         st.title("👥 User Administration")
         users_df = load_data(USER_DB_FILE)
@@ -724,7 +830,7 @@ else:
                         st.success(f"User {d_user} deleted.")
                         st.rerun()
                     
-    # --- PAGE 5: ADMIN SETTINGS ---
+    # --- PAGE 6: ADMIN SETTINGS ---
     elif page == "Settings":
         st.title("⚙️ Portal Settings")
         
@@ -844,7 +950,7 @@ else:
                     st.success("✅ SMTP settings saved!")
                     st.rerun()
 
-    # --- PAGE 6: MY PROFILE ---
+    # --- PAGE 7: MY PROFILE ---
     elif page == "My Profile":
         st.title("👤 My Profile")
         users_df = load_data(USER_DB_FILE)
