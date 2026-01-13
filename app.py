@@ -202,6 +202,16 @@ def get_theme_css(theme):
         opacity: 1 !important;
         z-index: 100000 !important;
     }
+    
+    /* FIX: Text Area (Address Box) */
+    div[data-testid="stTextArea"] textarea {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #999999 !important;
+    }
+    div[data-testid="stTextArea"] label {
+        color: #000000 !important;
+    }
     [data-testid="stSidebarCollapsedControl"] svg {
         fill: #000000 !important;
         color: #000000 !important;
