@@ -167,6 +167,38 @@ def get_theme_css(theme):
     div[role="radiogroup"] label {
         color: #000000 !important;
     }
+    
+    /* FIX: File Uploader */
+    [data-testid="stFileUploader"] {
+        background-color: #ffffff !important;
+    }
+    [data-testid="stFileUploader"] section {
+         background-color: #f8f9fa !important; /* Light grey for drop area */
+         color: #000000 !important;
+    }
+    [data-testid="stFileUploader"] svg {
+        fill: #000000 !important;
+    }
+    [data-testid="stFileUploader"] small {
+        color: #333333 !important;
+    }
+    
+    /* FIX: Expanders (Broad Targeting) */
+    details {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 5px;
+    }
+    details > summary {
+         background-color: #f8f9fa !important;
+         color: #000000 !important;
+         border-radius: 5px;
+    }
+    details > div {
+         background-color: #ffffff !important;
+         color: #000000 !important;
+    }
 </style>
 """
 
