@@ -88,11 +88,6 @@ def get_theme_css(theme):
         color: #000000 !important;
     }
 
-    [data-testid="stSidebar"] {
-        background-color: #f8f9fa;
-        border-right: 1px solid #dee2e6;
-    }
-    
     /* Inputs in Light Mode */
     .stTextInput > div > div > input {
         background-color: #ffffff !important;
