@@ -97,11 +97,13 @@ def get_theme_css(theme):
     .stTextInput > div > div > input {
         background-color: #ffffff !important;
         color: #000000 !important;
-        border: 1px solid #dee2e6;
+        border: 1px solid #999999 !important; /* Made border darker */
     }
     .stSelectbox > div > div > div {
         background-color: #ffffff !important;
         color: #000000 !important;
+        border: 1px solid #999999 !important; /* Made border darker */
+        border-radius: 4px;
     }
     
     /* Custom Buttons - Force ALL buttons to match specific brand styling */
@@ -112,7 +114,7 @@ def get_theme_css(theme):
         background-color: #00e5ff !important;
         color: #000000 !important;
         font-weight: bold !important;
-        border: none !important;
+        border: 1px solid #000000 !important; /* Added border to buttons for contrast */
         box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
         transition: all 0.3s ease !important;
     }
@@ -130,7 +132,7 @@ def get_theme_css(theme):
     
     /* Fix for Table/Dataframe borders/text */
     [data-testid="stDataFrame"] {
-        border: 1px solid #dee2e6;
+        border: 1px solid #999999 !important;
     }
     
     /* FIX: Top Header Bar */
@@ -142,18 +144,19 @@ def get_theme_css(theme):
     .streamlit-expanderHeader {
         background-color: #f8f9fa !important;
         color: #000000 !important;
-        border: 1px solid #dee2e6 !important;
+        border: 1px solid #999999 !important;
     }
     .streamlit-expanderContent {
         background-color: #ffffff !important;
         color: #000000 !important;
-        border: 1px solid #dee2e6 !important;
+        border: 1px solid #999999 !important;
         border-top: none !important;
     }
     
     /* FIX: Dropdown Menus (Popover options) */
     div[data-baseweb="popover"] {
         background-color: #ffffff !important;
+        border: 1px solid #999999 !important;
     }
     div[data-baseweb="menu"] {
         background-color: #ffffff !important;
@@ -175,12 +178,13 @@ def get_theme_css(theme):
     [data-testid="stFileUploader"] section {
          background-color: #f8f9fa !important; /* Light grey for drop area */
          color: #000000 !important;
+         border: 2px dashed #999999 !important; /* Visible dashed border */
     }
     [data-testid="stFileUploader"] svg {
         fill: #000000 !important;
     }
     [data-testid="stFileUploader"] small {
-        color: #333333 !important;
+        color: #000000 !important; /* Forced black for small text */
     }
     
     /* FIX: Expanders (Broad Targeting) */
