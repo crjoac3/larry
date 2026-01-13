@@ -171,8 +171,26 @@ def get_theme_css(theme):
         background-color: #ffffff !important;
         color: #000000 !important;
     }
+    /* Aggressive Catch-all for Dropdown Internals */
+    div[data-baseweb="popover"] > div,
+    div[data-baseweb="popover"] ul,
+    div[data-baseweb="popover"] li,
+    div[data-baseweb="popover"] span,
+    div[data-baseweb="popover"] div {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
     li[data-baseweb="option"] {
          color: #000000 !important;
+    }
+    
+    /* FIX: Selectbox Arrow/Caret */
+    .stSelectbox svg {
+        fill: #000000 !important;
+        color: #000000 !important;
+    }
+    div[data-testid="stSelectbox"] svg {
+        fill: #000000 !important;
     }
     
     /* FIX: Radio Buttons */
