@@ -203,14 +203,25 @@ def get_theme_css(theme):
         z-index: 100000 !important;
     }
     
-    /* FIX: Text Area (Address Box) */
+    /* FIX: Text Area (Address Box) - Aggressive Overrides */
     div[data-testid="stTextArea"] textarea {
         background-color: #ffffff !important;
         color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        caret-color: #000000 !important;
         border: 1px solid #999999 !important;
     }
     div[data-testid="stTextArea"] label {
         color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+    
+    /* FIX: File Uploader Text */
+    [data-testid="stFileUploader"] span, 
+    [data-testid="stFileUploader"] small, 
+    [data-testid="stFileUploader"] div {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
     }
     [data-testid="stSidebarCollapsedControl"] svg {
         fill: #000000 !important;
