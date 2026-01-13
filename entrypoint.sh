@@ -4,6 +4,9 @@ set -e
 echo "🐳 Starting Entrypoint Script..."
 
 # 1. Update Code from GitHub (if .git exists)
+# Fix for "dubious ownership" error in Docker (Exit 128)
+git config --global --add safe.directory /app
+
 if [ -d ".git" ]; then
     echo "🔄 Checking for updates from GitHub..."
     git fetch origin
