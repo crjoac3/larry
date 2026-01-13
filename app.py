@@ -577,6 +577,44 @@ def get_company_logo(company):
         return LOGO_FILE
     return None
 
+def update_company(original_name, new_address, new_contact, new_email, new_phone, new_logo_file=None):
+    """Updates an existing company's details."""
+    if not os.path.exists(COMPANIES_FILE): return False
+    
+    try:
+        df = pd.read_csv(COMPANIES_FILE)
+        if 'company_name' not in df.columns: return False
+        
+        idx = df[df['company_name'] == original_name].index
+        if len(idx) == 0: return False
+        idx = idx[0]
+        
+        # Update text fields
+        df.at[idx, 'address'] = new_address
+        df.at[idx, 'contact_name'] = new_contact
+        df.at[idx, 'contact_email'] = new_email
+        df.at[idx, 'contact_phone'] = new_phone
+        
+        # Handle Logo Update
+        if new_logo_file:
+            if not os.path.exists("logos"):
+                os.makedirs("logos")
+                
+            safe_name = "".join([c for c in original_name if c.isalnum() or c in (' ','-','_')]).strip().replace(" ", "_")
+            ext = new_logo_file.name.split('.')[-1]
+            fname = f"logos/{safe_name}_logo_{int(datetime.datetime.now().timestamp())}.{ext}" # Timestamp to bust cache
+            
+            with open(fname, "wb") as f:
+                f.write(new_logo_file.getbuffer())
+                
+            df.at[idx, 'logo_path'] = fname
+            
+        df.to_csv(COMPANIES_FILE, index=False)
+        return True
+    except Exception as e:
+        print(f"Error updating company: {e}")
+        return False
+
 def load_settings():
     if os.path.exists(SETTINGS_FILE):
         try:
