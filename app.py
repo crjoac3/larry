@@ -1205,15 +1205,6 @@ else:
                             current_data = row.fillna('').iloc[0].to_dict()
                     except: pass
                 
-                if os.path.exists(COMPANIES_FILE):
-                     try:
-                         cdf = pd.read_csv(COMPANIES_FILE)
-                         row = cdf[cdf['company_name'] == selected_co]
-                         if not row.empty:
-                             # Replace NaN with empty string
-                             current_data = row.fillna('').iloc[0].to_dict()
-                     except: pass
-                
                 with st.form("edit_company_form"):
                     e_addr = st.text_area("Address", value=current_data.get('address', ''))
                     
@@ -1226,7 +1217,10 @@ else:
                     # Show current logo
                     curr_logo = current_data.get('logo_path', '')
                     if curr_logo and os.path.exists(str(curr_logo)):
-                        st.image(str(curr_logo), width=100, caption="Current Logo")
+                        try:
+                            st.image(str(curr_logo), width=100, caption="Current Logo")
+                        except Exception:
+                            st.warning("⚠️ Current logo file is invalid or corrupt.")
                         
                     e_logo = st.file_uploader("Upload New Logo (Overwrites current)", type=['png', 'jpg', 'jpeg'])
                     
