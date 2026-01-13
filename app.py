@@ -534,18 +534,29 @@ def check_login(username, password):
     return None, None, None, None
 
 def get_company_logo(company):
-    """Fetches the company logo if exists, else returns the default logo."""
-    # Ensure logos directory exists
+    """Fetches the company logo from companies.csv if exists, else legacy check."""
+    # 1. Check entries in companies.csv
+    if os.path.exists(COMPANIES_FILE):
+        try:
+            df = pd.read_csv(COMPANIES_FILE)
+            if 'company_name' in df.columns and 'logo_path' in df.columns:
+                row = df[df['company_name'] == company]
+                if not row.empty:
+                    logo_path = row.iloc[0]['logo_path']
+                    if logo_path and isinstance(logo_path, str) and os.path.exists(logo_path):
+                        return logo_path
+        except: pass
+
+    # 2. Legacy: Check logos directory by name
     if not os.path.exists('logos'):
         os.makedirs('logos')
         
-    # Check for company specific logo (supported extensions)
     for ext in ['png', 'jpg', 'jpeg', 'webp']:
         path = f"logos/{company}.{ext}"
         if os.path.exists(path):
             return path
     
-    # Fallback to default
+    # 3. Fallback to default
     if os.path.exists(LOGO_FILE):
         return LOGO_FILE
     return None
@@ -1099,9 +1110,10 @@ else:
         st.title("🏢 Company Management")
         st.info("Manage client companies independently of users or inventory.")
         
-        c1, c2 = st.columns([1, 2])
+        tab_create, tab_edit, tab_view = st.tabs(["➕ Create New", "✏️ Edit Existing", "📋 View All"])
         
-        with c1:
+        # --- TAB 1: CREATE NEW ---
+        with tab_create:
             st.subheader("Create New Company")
             with st.form("create_company_form", clear_on_submit=True):
                 new_co_name = st.text_input("New Company Name", placeholder="e.g. Acme Corp")
@@ -1120,14 +1132,54 @@ else:
                         st.rerun()
                     else:
                         st.error("❌ Company already exists or invalid name.")
-        
-        with c2:
+
+        # --- TAB 2: EDIT EXISTING ---
+        with tab_edit:
+            st.subheader("Edit Company Details")
+            all_companies = get_all_companies()
+            selected_co = st.selectbox("Select Company to Edit", all_companies)
+            
+            if selected_co:
+                # Load current data
+                current_data = {}
+                if os.path.exists(COMPANIES_FILE):
+                    try:
+                        cdf = pd.read_csv(COMPANIES_FILE)
+                        row = cdf[cdf['company_name'] == selected_co]
+                        if not row.empty:
+                            current_data = row.iloc[0].to_dict()
+                    except: pass
+                
+                with st.form("edit_company_form"):
+                    e_addr = st.text_area("Address", value=current_data.get('address', ''))
+                    
+                    ec1, ec2 = st.columns(2)
+                    with ec1: e_contact = st.text_input("Contact Name", value=current_data.get('contact_name', ''))
+                    with ec2: e_phone = st.text_input("Phone Number", value=current_data.get('contact_phone', ''))
+                    
+                    e_email = st.text_input("Contact Email", value=current_data.get('contact_email', ''))
+                    
+                    # Show current logo
+                    curr_logo = current_data.get('logo_path', '')
+                    if curr_logo and os.path.exists(str(curr_logo)):
+                        st.image(str(curr_logo), width=100, caption="Current Logo")
+                        
+                    e_logo = st.file_uploader("Upload New Logo (Overwrites current)", type=['png', 'jpg', 'jpeg'])
+                    
+                    if st.form_submit_button("Update Company"):
+                        if update_company(selected_co, e_addr, e_contact, e_email, e_phone, e_logo):
+                            st.success(f"✅ {selected_co} updated successfully!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Update failed.")
+
+        # --- TAB 3: VIEW ALL ---
+        with tab_view:
             st.subheader("Existing Companies")
             if os.path.exists(COMPANIES_FILE):
                 try:
                     c_df = pd.read_csv(COMPANIES_FILE)
                     if 'company_name' in c_df.columns:
-                        # Display with more details
                         st.dataframe(
                             c_df, 
                             column_config={
@@ -1281,39 +1333,8 @@ else:
         st.title("⚙️ Portal Settings")
         
         # --- 🎨 BRANDING SECTION ---
-        st.subheader("🎨 Portal Branding")
-        st.caption("Customize the portal logo for your company.")
-        
-        branding_col1, branding_col2 = st.columns([1, 2])
-        company_name = st.session_state['company']
-        
-        with branding_col1:
-            current_logo = get_company_logo(company_name)
-            if current_logo:
-                st.write("**Current Logo:**")
-                st.image(current_logo, width=150)
-        
-        with branding_col2:
-            new_logo_file = st.file_uploader("Upload New Logo (PNG/JPG)", type=['png', 'jpg', 'jpeg', 'webp'], key="logo_uploader")
-            if new_logo_file:
-                # Save new logo
-                if not os.path.exists('logos'):
-                    os.makedirs('logos')
-                
-                # Cleanup old logos for this company to avoid conflict
-                for ext in ['png', 'jpg', 'jpeg', 'webp']:
-                    old_path = f"logos/{company_name}.{ext}"
-                    if os.path.exists(old_path):
-                        os.remove(old_path)
-                
-                ext = new_logo_file.name.split('.')[-1]
-                save_path = f"logos/{company_name}.{ext}"
-                with open(save_path, "wb") as f:
-                    f.write(new_logo_file.getbuffer())
-                st.success(f"✅ Logo updated for {company_name}!")
-                st.rerun()
-
-        st.divider()
+        # Customization moved to "Company Management" page for global admins.
+        # This keeps settings focused on Notifications.
 
         # --- 📧 NOTIFICATIONS SECTION (GLOBAL ADMIN ONLY) ---
         if is_global_admin():
