@@ -332,6 +332,18 @@ def repair_user_database():
     if os.path.exists(COMPANIES_FILE):
         try:
             c_df = pd.read_csv(COMPANIES_FILE)
+            
+            # Schema Update for Companies
+            missing_cols = []
+            for col in ['address', 'contact_name', 'contact_email', 'contact_phone', 'logo_path']:
+                if col not in c_df.columns:
+                    c_df[col] = "" # Add missing column with empty string
+                    missing_cols.append(col)
+            
+            if missing_cols:
+                c_df.to_csv(COMPANIES_FILE, index=False)
+                print(f"✅ Companies DB updated with new columns: {missing_cols}")
+
             if 'company_name' in c_df.columns:
                 companies_exist = set(c_df['company_name'].unique())
         except: pass
@@ -418,23 +430,56 @@ def get_all_companies():
             return ["WestWorld"]
     return ["WestWorld"]
 
-def add_company(name):
-    """Adds a new company to the DB."""
+def add_company(name, address="", contact_name="", contact_email="", phone="", logo_file=None):
+    """Adds a new company to the DB with optional details."""
     if not name: return False
     
     current = get_all_companies()
     # Case insensitive check
     if any(c.lower() == name.lower() for c in current): return False 
     
+    # Handle Logo Upload
+    logo_path = ""
+    if logo_file:
+        try:
+            if not os.path.exists("logos"):
+                os.makedirs("logos")
+            # Sanitize filename
+            safe_name = "".join([c for c in name if c.isalnum() or c in (' ','-','_')]).strip().replace(" ", "_")
+            ext = logo_file.name.split('.')[-1]
+            fname = f"logos/{safe_name}_logo.{ext}"
+            with open(fname, "wb") as f:
+                f.write(logo_file.getbuffer())
+            logo_path = fname
+        except Exception as e:
+            print(f"❌ Error saving logo: {e}")
+
     # Append
-    df = pd.DataFrame({'company_name': [name], 'created_at': [datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")]})
+    new_data = {
+        'company_name': name, 
+        'created_at': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'address': address,
+        'contact_name': contact_name,
+        'contact_email': contact_email,
+        'contact_phone': phone,
+        'logo_path': logo_path
+    }
+    df = pd.DataFrame([new_data])
     
     if os.path.exists(COMPANIES_FILE):
         # Check if empty
         if os.stat(COMPANIES_FILE).st_size == 0:
              df.to_csv(COMPANIES_FILE, index=False)
         else:
-             df.to_csv(COMPANIES_FILE, mode='a', header=False, index=False)
+             # Ensure headers match if appending. If columns missing in existing file, might need read/rewrite logic.
+             # For simplicity in V1, we append blindly assuming standard CSV behavior or just re-read full file.
+             # Safer: Read, Concat, Save
+             try:
+                 old_df = pd.read_csv(COMPANIES_FILE)
+                 final_df = pd.concat([old_df, df], ignore_index=True)
+                 final_df.to_csv(COMPANIES_FILE, index=False)
+             except:
+                 df.to_csv(COMPANIES_FILE, index=False) 
     else:
         df.to_csv(COMPANIES_FILE, index=False)
     return True
@@ -1037,10 +1082,19 @@ else:
         
         with c1:
             st.subheader("Create New Company")
-            with st.form("create_company_form"):
+            with st.form("create_company_form", clear_on_submit=True):
                 new_co_name = st.text_input("New Company Name", placeholder="e.g. Acme Corp")
+                c_addr = st.text_area("Address")
+                
+                col_a, col_b = st.columns(2)
+                with col_a: c_contact = st.text_input("Contact Name")
+                with col_b: c_phone = st.text_input("Phone Number")
+                
+                c_email = st.text_input("Contact Email")
+                c_logo = st.file_uploader("Upload Company Logo", type=['png', 'jpg', 'jpeg'])
+                
                 if st.form_submit_button("Create Company"):
-                    if add_company(new_co_name):
+                    if add_company(new_co_name, c_addr, c_contact, c_email, c_phone, c_logo):
                         st.success(f"✅ Company '{new_co_name}' created!")
                         st.rerun()
                     else:
@@ -1048,8 +1102,24 @@ else:
         
         with c2:
             st.subheader("Existing Companies")
-            companies = get_all_companies()
-            st.dataframe(pd.DataFrame(companies, columns=["Company Name"]), use_container_width=True, hide_index=True)
+            if os.path.exists(COMPANIES_FILE):
+                try:
+                    c_df = pd.read_csv(COMPANIES_FILE)
+                    if 'company_name' in c_df.columns:
+                        # Display with more details
+                        st.dataframe(
+                            c_df, 
+                            column_config={
+                                "logo_path": st.column_config.ImageColumn("Logo"),
+                                "created_at": st.column_config.DatetimeColumn("Created At", format="D MMM YYYY, h:mm a"),
+                            },
+                            use_container_width=True, 
+                            hide_index=True
+                        )
+                    else:
+                        st.info("No companies found.")
+                except:
+                    st.error("Error reading companies file.")
 
     # --- PAGE 5: User Management ---
     elif page == "User Management":
