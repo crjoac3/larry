@@ -3,6 +3,10 @@ import pandas as pd
 import os
 import datetime
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # --- CONFIGURATION & STYLES ---
 st.set_page_config(page_title="WestWorld Inventory Portal (v2.2)", layout="wide", page_icon="🌐")
@@ -388,11 +392,7 @@ def load_settings():
                 return json.load(f)
         except: pass
     return {
-        "email_rules": [],
-        "smtp_server": "",
-        "smtp_port": 587,
-        "smtp_user": "",
-        "smtp_pass": ""
+        "email_rules": []
     }
 
 def is_global_admin():
@@ -477,30 +477,32 @@ def process_audit_request(items_df, user, company, comment):
     return True
 
 def send_email_actual(recipients, subject, body):
+    """Send email using SendGrid SMTP."""
     import smtplib
     from email.mime.text import MIMEText
     
-    settings = load_settings()
-    server = settings.get("smtp_server")
-    port = settings.get("smtp_port", 587)
-    user = settings.get("smtp_user")
-    pwd = settings.get("smtp_pass")
+    # Get SendGrid credentials from environment variables
+    api_key = os.getenv("SENDGRID_API_KEY")
+    from_email = os.getenv("SENDGRID_FROM_EMAIL")
     
-    if not all([server, user, pwd]):
-        return # Not configured
+    if not api_key or not from_email:
+        print("⚠️ SendGrid not configured. Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL in .env file")
+        return
         
     try:
         msg = MIMEText(body)
         msg['Subject'] = subject
-        msg['From'] = user
-        msg['To'] = ", ".join(recipients)
+        msg['From'] = from_email
+        msg['To'] = ", ".join(recipients) if isinstance(recipients, list) else recipients
         
-        with smtplib.SMTP(server, port) as s:
+        # SendGrid SMTP configuration
+        with smtplib.SMTP('smtp.sendgrid.net', 587) as s:
             s.starttls()
-            s.login(user, pwd)
-            s.sendmail(user, recipients, msg.as_string())
+            s.login('apikey', api_key)  # Username is literally 'apikey'
+            s.sendmail(from_email, recipients, msg.as_string())
+        print(f"✅ Email sent to {recipients}")
     except Exception as e:
-        print(f"❌ SMTP Error: {str(e)}")
+        print(f"❌ SendGrid Error: {str(e)}")
 
 # --- SESSION STATE ---
 if 'logged_in' not in st.session_state:
@@ -1154,29 +1156,6 @@ else:
                             st.warning("Rule already exists.")
                     else:
                         st.error("Invalid email address.")
-
-            st.markdown("---")
-            st.subheader("🔐 System SMTP Configuration")
-            st.caption("Required for actual email notifications.")
-            
-            with st.form("smtp_form"):
-                c1, c2 = st.columns([2, 1])
-                with c1: s_host = st.text_input("SMTP Server", value=current_settings.get("smtp_server", ""))
-                with c2: s_port = st.number_input("SMTP Port", value=current_settings.get("smtp_port", 587))
-                
-                c3, c4 = st.columns(2)
-                with c3: s_user = st.text_input("SMTP Username (Email)", value=current_settings.get("smtp_user", ""))
-                with c4: s_pass = st.text_input("SMTP Password / App Password", type="password", value=current_settings.get("smtp_pass", ""))
-                
-                if st.form_submit_button("💾 Save SMTP Settings"):
-                    current_settings.update({
-                        "smtp_server": s_host,
-                        "smtp_port": s_port,
-                        "smtp_user": s_user,
-                        "smtp_pass": s_pass
-                    })
-                    save_settings(current_settings)
-                    st.success("✅ SMTP settings saved!")
                     st.rerun()
 
     # --- PAGE 7: MY PROFILE ---
