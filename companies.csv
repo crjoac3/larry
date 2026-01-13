@@ -1,3 +1,4 @@
 company_name,created_at,address,contact_name,contact_email,contact_phone,logo_path
 WestWorld,2025-01-01 00:00:00,"1122 W. 5th Avenue, Suite 100, Lakeland, Florida 33805, United States",John Doe,info@westworldtelecom.com,(863) 667-4464,logo.jpg
 Ciena,2025-01-01 00:00:00,"7035 Ridge Road, Hanover, Maryland 21076, United States",John Doe,info@ciena.com,(410) 617-2000,
+test,2025-01-01 00:00:00,"7035 Ridge Road, Hanover, Mblah 21076, United States",John Doe,info@test.com,(410) 999-9999,
