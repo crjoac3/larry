@@ -807,7 +807,7 @@ else:
         
         # Client Admin / Manager (Can manage their own users and branding)
         elif st.session_state['user_role'] == 'manager':
-            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "User Management", "Settings", "My Profile"]
+            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "User Management", "My Profile"]
             
         page = st.radio("Navigate", menu_options)
             
