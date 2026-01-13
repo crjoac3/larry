@@ -1140,24 +1140,27 @@ else:
                 p_name = st.text_input("Full Name", value=user_row.get('name', ''))
                 p_email = st.text_input("Email Address", value=user_row.get('email', ''))
                 
+                st.markdown("### Theme Settings")
+                current_theme = user_row.get('theme', 'light')
+                # Use a specific key for the widget to retrieve its value on submit
+                new_theme = st.radio("Choose Theme", ["Light", "Dark"], index=0 if current_theme == 'light' else 1, horizontal=True)
+                
                 if st.form_submit_button("💾 Save Profile"):
                     users_df.at[user_idx, 'name'] = p_name
                     users_df.at[user_idx, 'email'] = p_email
+                    
+                    # Handle Theme Update
+                    selected_theme_val = new_theme.lower()
+                    if selected_theme_val != current_theme:
+                        users_df.at[user_idx, 'theme'] = selected_theme_val
+                        st.session_state['theme'] = selected_theme_val
+                        st.success(f"Profile and Theme updated! Switching to {new_theme}...")
+                    else:
+                        st.success("Profile updated!")
+                        
                     save_data(users_df, USER_DB_FILE)
-                    st.session_state['name'] = p_name # Update session state too
-                    st.success("Profile updated!")
+                    st.session_state['name'] = p_name 
                     st.rerun()
-
-            st.subheader("Theme Settings")
-            current_theme = user_row.get('theme', 'light')
-            new_theme = st.radio("Choose Theme", ["Light", "Dark"], index=0 if current_theme == 'light' else 1, horizontal=True)
-            
-            if new_theme.lower() != current_theme:
-                users_df.at[user_idx, 'theme'] = new_theme.lower()
-                save_data(users_df, USER_DB_FILE)
-                st.session_state['theme'] = new_theme.lower()
-                st.success(f"Theme switched to {new_theme}! Reloading...")
-                st.rerun()
                     
         with col_prof2:
             st.subheader("Change Password")
