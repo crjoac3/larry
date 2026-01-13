@@ -225,8 +225,8 @@ def get_theme_css(theme):
     }
     /* Sidebar Styling */
     [data-testid="stSidebar"] {
-        background-color: #f1f3f6 !important;
-        border-right: 1px solid #e0e0e0;
+        background-color: #e8eaed !important;
+        border-right: 1px solid #d0d0d0;
     }
     
     [data-testid="stSidebar"] .stMarkdown, 
