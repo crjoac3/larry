@@ -3,7 +3,7 @@ set -e
 
 echo "🐳 Starting Entrypoint Script..."
 
-# 1. Update Code from GitHub (if .git exists)
+# 1. Update Code from GitHub (Auto-init if missing)
 # Fix for "dubious ownership" error in Docker (Exit 128)
 git config --global --add safe.directory /app
 
@@ -12,7 +12,11 @@ if [ -d ".git" ]; then
     git fetch origin
     git reset --hard origin/main || echo "⚠️ Git update failed."
 else
-    echo "⚠️ No .git directory found. Skipping auto-update."
+    echo "⚠️ No .git directory found. Auto-initializing..."
+    git init
+    git remote add origin https://github.com/crjoac3/larry.git
+    git fetch origin
+    git reset --hard origin/main || echo "⚠️ Initial git sync failed. Continuing with packed code."
 fi
 
 # 2. Data Migration / Initialization
