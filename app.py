@@ -210,18 +210,23 @@ def get_theme_css(theme):
     
     /* FIX: File Uploader */
     [data-testid="stFileUploader"] {
-        background-color: #ffffff !important;
+        background-color: #ffffff;
     }
     [data-testid="stFileUploader"] section {
-         background-color: #f8f9fa !important; /* Light grey for drop area */
-         color: #000000 !important;
-         border: 2px dashed #999999 !important; /* Visible dashed border */
-    }
-    /* Force Text Color inside File Uploader */
-    [data-testid="stFileUploader"] section > div, 
-    [data-testid="stFileUploader"] section span, 
-    [data-testid="stFileUploader"] section small {
+        background-color: #f8f9fa !important;
+        border: 2px dashed #999999 !important;
         color: #000000 !important;
+    }
+    /* FIX: Uploaded File List Text (Filename, etc) */
+    [data-testid="stFileUploader"] div,
+    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] small,
+    [data-testid="stFileUploader"] p {
+        color: #000000 !important;
+    }
+    
+    [data-testid="stFileUploader"] section > button {
+         color: #000000 !important; /* Browse button text */
     }
     [data-testid="stFileUploader"] svg {
         fill: #000000 !important;
