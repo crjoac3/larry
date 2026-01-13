@@ -223,6 +223,22 @@ def get_theme_css(theme):
     [data-testid="stFileUploader"] {
         background-color: #ffffff;
     }
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #f1f3f6 !important;
+        border-right: 1px solid #e0e0e0;
+    }
+    
+    [data-testid="stSidebar"] .stMarkdown, 
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] label {
+        color: #000000 !important;
+    }
+    
     [data-testid="stFileUploader"] section {
         background-color: #f8f9fa !important;
         border: 2px dashed #999999 !important;
