@@ -104,26 +104,30 @@ def get_theme_css(theme):
         color: #000000 !important;
     }
     
-    /* Custom Buttons - keep the brand feel */
-    .stButton > button {
+    /* Custom Buttons - Force ALL buttons to match specific brand styling */
+    .stButton > button, 
+    div[data-testid="stForm"] button, 
+    button[kind="primary"], 
+    button[kind="secondary"] {
         background-color: #00e5ff !important;
         color: #000000 !important;
-        font-weight: bold;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
+        font-weight: bold !important;
+        border: none !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease !important;
     }
-    .stButton > button:hover {
+
+    /* Hover State for ALL buttons */
+    .stButton > button:hover, 
+    div[data-testid="stForm"] button:hover,
+    button[kind="primary"]:hover, 
+    button[kind="secondary"]:hover {
         background-color: #00b8cc !important;
         transform: scale(1.02);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-    }
-    
-    /* Specific styling for Form Submit Buttons if needed */
-    div[data-testid="stForm"] .stButton > button {
-        background-color: #00e5ff !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
         color: #000000 !important;
     }
+    
     /* Fix for Table/Dataframe borders/text */
     [data-testid="stDataFrame"] {
         border: 1px solid #dee2e6;
