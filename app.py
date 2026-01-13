@@ -197,6 +197,11 @@ def get_theme_css(theme):
     [data-testid="stSidebarCollapsedControl"] {
         color: #000000 !important;
         fill: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #999999 !important;
+        border-radius: 5px !important;
+        opacity: 1 !important;
+        z-index: 100000 !important;
     }
     [data-testid="stSidebarCollapsedControl"] svg {
         fill: #000000 !important;
@@ -206,6 +211,12 @@ def get_theme_css(theme):
     /* FIX: Radio Buttons */
     div[role="radiogroup"] label {
         color: #000000 !important;
+    }
+    
+    /* FIX: DataFrame (Invert Dark Theme to Light) */
+    [data-testid="stDataFrame"] {
+        filter: invert(1) hue-rotate(180deg);
+        border: 1px solid #cccccc !important;
     }
     
     /* FIX: File Uploader */
