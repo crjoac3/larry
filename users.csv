@@ -1,3 +1,3 @@
-username,password,role,company,email,name
-admin,admin123,admin,WestWorld,crjoac3@gmail.com,Chris Jakobsen
-ciena,admin,manager,Ciena,crjoac3@gmail.com,John Doe
+username,password,role,company,email,name,theme
+admin,admin123,admin,WestWorld,crjoac3@gmail.com,Chris Jakobsen,light
+ciena,admin,manager,Ciena,crjoac3@gmail.com,John Doe,light
