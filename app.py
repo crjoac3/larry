@@ -364,6 +364,22 @@ def repair_user_database():
             if missing_cols:
                 c_df.to_csv(COMPANIES_FILE, index=False)
                 print(f"✅ Companies DB updated with new columns: {missing_cols}")
+            
+            # --- DATA MIGRATION: Ensure WestWorld has details ---
+            # This ensures that even if pulling from a stale CSV on deployment, 
+            # the app corrects the data on startup.
+            if 'company_name' in c_df.columns:
+                ww_mask = c_df['company_name'] == "WestWorld"
+                if ww_mask.any():
+                    idx = c_df[ww_mask].index[0]
+                    # Only update if address is empty/NaN
+                    curr_addr = str(c_df.at[idx, 'address'])
+                    if not curr_addr or curr_addr == 'nan':
+                        c_df.at[idx, 'address'] = "1122 W. 5th Avenue, Suite 100, Lakeland, Florida 33805, United States"
+                        c_df.at[idx, 'contact_phone'] = "(863) 667-4464"
+                        c_df.at[idx, 'contact_email'] = "info@westworldtelecom.com" # Default
+                        c_df.to_csv(COMPANIES_FILE, index=False)
+                        print("✅ WestWorld company details migrated.")
 
             if 'company_name' in c_df.columns:
                 companies_exist = set(c_df['company_name'].unique())
