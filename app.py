@@ -57,11 +57,22 @@ def get_theme_css(theme):
         # Premium Light Theme
         return """
 <style>
-    /* Premium Light Theme */
+    /* Premium Light Theme - Force Text Colors */
     .stApp {
         background-color: #ffffff;
-        color: #31333F;
+        color: #000000 !important;
     }
+    
+    /* Text Visibility Fixes */
+    h1, h2, h3, h4, h5, h6, p, label, span, div {
+        color: #000000;
+    }
+    
+    /* Specific overrides for sidebar nav which might be tricky */
+    [data-testid="stSidebar"] label, [data-testid="stSidebar"] span, [data-testid="stSidebar"] p {
+        color: #000000 !important;
+    }
+    
     div[data-testid="stMetric"] {
         background-color: #f8f9fa;
         padding: 15px;
@@ -70,14 +81,33 @@ def get_theme_css(theme):
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         border: 1px solid #e9ecef;
     }
+    div[data-testid="stMetric"] label {
+        color: #000000 !important;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #000000 !important;
+    }
+
     [data-testid="stSidebar"] {
         background-color: #f8f9fa;
         border-right: 1px solid #dee2e6;
     }
+    
+    /* Inputs in Light Mode */
+    .stTextInput > div > div > input {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #dee2e6;
+    }
+    .stSelectbox > div > div > div {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    
     /* Custom Buttons - keep the brand feel */
     .stButton > button {
         background-color: #00e5ff;
-        color: #000000;
+        color: #000000 !important;
         font-weight: bold;
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -87,6 +117,10 @@ def get_theme_css(theme):
         background-color: #00b8cc;
         transform: scale(1.02);
         box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+    /* Fix for Table/Dataframe borders/text */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #dee2e6;
     }
 </style>
 """
