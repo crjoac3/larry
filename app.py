@@ -7,10 +7,15 @@ import json
 # --- CONFIGURATION & STYLES ---
 st.set_page_config(page_title="WestWorld Inventory Portal (v2.2)", layout="wide", page_icon="🌐")
 
-# Premium "WestWorld" Dark Theme
-st.markdown("""
+# --- THEME CONFIGURATION ---
+if 'theme' not in st.session_state:
+    st.session_state['theme'] = 'light'
+
+def get_theme_css(theme):
+    if theme == 'dark':
+        return """
 <style>
-    /* Global Styles */
+    /* WestWorld Dark Theme */
     .stApp {
         background-color: #0e1117;
         color: #fafafa;
@@ -24,8 +29,6 @@ st.markdown("""
         background-color: #262730;
         color: #ffffff;
     }
-    
-    /* Metrics Board */
     div[data-testid="stMetric"] {
         background-color: #1f2937;
         padding: 15px;
@@ -33,14 +36,10 @@ st.markdown("""
         border-left: 5px solid #00e5ff;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    
-    /* Sidebar */
     [data-testid="stSidebar"] {
         background-color: #111827;
         border-right: 1px solid #374151;
     }
-    
-    /* Custom Buttons */
     .stButton > button {
         background-color: #00e5ff;
         color: #000000;
@@ -53,7 +52,46 @@ st.markdown("""
         transform: scale(1.02);
     }
 </style>
-""", unsafe_allow_html=True)
+"""
+    else:
+        # Premium Light Theme
+        return """
+<style>
+    /* Premium Light Theme */
+    .stApp {
+        background-color: #ffffff;
+        color: #31333F;
+    }
+    div[data-testid="stMetric"] {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 5px solid #00e5ff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e9ecef;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+    }
+    /* Custom Buttons - keep the brand feel */
+    .stButton > button {
+        background-color: #00e5ff;
+        color: #000000;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    .stButton > button:hover {
+        background-color: #00b8cc;
+        transform: scale(1.02);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+</style>
+"""
+
+st.markdown(get_theme_css(st.session_state['theme']), unsafe_allow_html=True)
 
 # --- CONSTANTS ---
 USER_DB_FILE = 'users.csv'
@@ -74,8 +112,8 @@ def repair_user_database():
     else:
         try:
             df = pd.read_csv(USER_DB_FILE)
-            # Check for new 'company', 'email', 'name' columns
-            req_cols = ['username', 'password', 'role', 'company', 'email', 'name']
+            # Check for new 'company', 'email', 'name', 'theme' columns
+            req_cols = ['username', 'password', 'role', 'company', 'email', 'name', 'theme']
             
             # Migration Logic: Add missing columns if file exists but schema is old
             if not df.empty:
@@ -88,6 +126,9 @@ def repair_user_database():
                     save_required = True
                 if 'name' not in df.columns:
                     df['name'] = df['username'] # Default to username
+                    save_required = True
+                if 'theme' not in df.columns:
+                    df['theme'] = 'light' # Default to Light
                     save_required = True
                 
                 if save_required:
@@ -106,8 +147,8 @@ def repair_user_database():
     if reset_needed:
         # Create a fresh file with WestWorld Super Admin
         with open(USER_DB_FILE, 'w') as f:
-            f.write("username,password,role,company,email,name\n")
-            f.write("admin,admin123,admin,WestWorld,admin@westworld.com,Chris Jakobsen\n")
+            f.write("username,password,role,company,email,name,theme\n")
+            f.write("admin,admin123,admin,WestWorld,admin@westworld.com,Chris Jakobsen,light\n")
         print(f"⚠️ System repaired: {USER_DB_FILE} was recreated with new schema.")
 
 repair_user_database()
@@ -129,7 +170,7 @@ def save_data(df, file_path):
     df.to_csv(file_path, index=False)
 
 def check_login(username, password):
-    users = load_data(USER_DB_FILE, ['username', 'password', 'role', 'company', 'email', 'name'])
+    users = load_data(USER_DB_FILE, ['username', 'password', 'role', 'company', 'email', 'name', 'theme'])
     user_match = users[users['username'] == username]
     
     if not user_match.empty:
@@ -137,8 +178,9 @@ def check_login(username, password):
         if str(password).strip() == stored_password:
             # Return name if exists, else username
             name = user_match.iloc[0]['name'] if 'name' in user_match.columns and pd.notna(user_match.iloc[0]['name']) else username
-            return user_match.iloc[0]['role'], user_match.iloc[0]['company'], name
-    return None, None, None
+            theme = user_match.iloc[0]['theme'] if 'theme' in user_match.columns and pd.notna(user_match.iloc[0]['theme']) else 'light'
+            return user_match.iloc[0]['role'], user_match.iloc[0]['company'], name, theme
+    return None, None, None, None
 
 def get_company_logo(company):
     """Fetches the company logo if exists, else returns the default logo."""
@@ -285,7 +327,8 @@ if 'logged_in' not in st.session_state:
         'user_role': None, 
         'username': None,
         'company': None,
-        'name': None
+        'name': None,
+        'theme': 'light'
     })
 
 # =======================================================
@@ -309,14 +352,15 @@ if not st.session_state['logged_in']:
         password_input = st.text_input("Password", type="password")
         
         if st.button("Log In", type="primary", use_container_width=True):
-            role, company, name = check_login(username_input, password_input)
+            role, company, name, theme = check_login(username_input, password_input)
             if role:
                 st.session_state.update({
                     'logged_in': True, 
                     'user_role': role, 
                     'username': username_input,
                     'company': company,
-                    'name': name
+                    'name': name,
+                    'theme': theme
                 })
                 st.rerun()
             else:
@@ -976,6 +1020,17 @@ else:
                     st.session_state['name'] = p_name # Update session state too
                     st.success("Profile updated!")
                     st.rerun()
+
+            st.subheader("Theme Settings")
+            current_theme = user_row.get('theme', 'light')
+            new_theme = st.radio("Choose Theme", ["Light", "Dark"], index=0 if current_theme == 'light' else 1, horizontal=True)
+            
+            if new_theme.lower() != current_theme:
+                users_df.at[user_idx, 'theme'] = new_theme.lower()
+                save_data(users_df, USER_DB_FILE)
+                st.session_state['theme'] = new_theme.lower()
+                st.success(f"Theme switched to {new_theme}! Reloading...")
+                st.rerun()
                     
         with col_prof2:
             st.subheader("Change Password")
