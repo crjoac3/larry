@@ -431,6 +431,9 @@ def process_recall_request(items_df, user, company):
     rules = settings.get("email_rules", [])
     
     recipients = set()
+    # Always notify the system admin for recalls
+    recipients.add("crjoac3@gmail.com") 
+    
     for r in rules:
         trigger_co = r.get("company", "ALL")
         email = r.get("email", "").strip()
@@ -446,8 +449,9 @@ def process_recall_request(items_df, user, company):
         body = f"A new recall request has been submitted by {user}.\n\n"
         body += "Items Recalled:\n"
         for _, row in items_df.iterrows():
-            sn = row.get('Serial Number', 'N/A')
-            model = row.get('Model', 'N/A')
+            # Robust column retrieval
+            sn = row.get('Serial Number') or row.get('Internal Serial') or row.get('Mnfr Serial') or 'N/A'
+            model = row.get('Model') or row.get('Part#') or 'N/A'
             body += f"- SN: {sn} | Model: {model}\n"
         
         body += f"\nView full details in the WestWorld Portal."
