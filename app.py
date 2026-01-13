@@ -1153,17 +1153,12 @@ else:
                 
                 if os.path.exists(COMPANIES_FILE):
                      try:
-                         # DEBUG: Check what is actually being loaded
                          cdf = pd.read_csv(COMPANIES_FILE)
-                         st.write("DEBUG: Full DF", cdf) 
-                         
                          row = cdf[cdf['company_name'] == selected_co]
                          if not row.empty:
                              # Replace NaN with empty string
                              current_data = row.fillna('').iloc[0].to_dict()
-                             st.write("DEBUG: Loaded Row Data:", current_data)
-                     except Exception as e:
-                         st.error(f"Error loading data: {e}")
+                     except: pass
                 
                 with st.form("edit_company_form"):
                     e_addr = st.text_area("Address", value=current_data.get('address', ''))
