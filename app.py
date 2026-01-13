@@ -1147,7 +1147,8 @@ else:
                         cdf = pd.read_csv(COMPANIES_FILE)
                         row = cdf[cdf['company_name'] == selected_co]
                         if not row.empty:
-                            current_data = row.iloc[0].to_dict()
+                            # Replace NaN with empty string to avoid "nan" in inputs
+                            current_data = row.fillna('').iloc[0].to_dict()
                     except: pass
                 
                 with st.form("edit_company_form"):
