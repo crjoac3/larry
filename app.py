@@ -301,13 +301,14 @@ def get_theme_css(theme):
 st.markdown(get_theme_css(st.session_state['theme']), unsafe_allow_html=True)
 
 # --- CONSTANTS ---
-USER_DB_FILE = 'users.csv'
-MASTER_INVENTORY_FILE = 'master_inventory.csv'
-RECALL_LOG_FILE = 'recall_requests_log.csv'
-AUDIT_LOG_FILE = 'audit_requests_log.csv'
-SETTINGS_FILE = 'settings.json'
-LOGO_FILE = 'logo.jpg'
-COMPANIES_FILE = 'companies.csv'
+# Use environment variables for Docker compatibility (mounted to /data)
+USER_DB_FILE = os.getenv('USER_DB_FILE', 'users.csv')
+MASTER_INVENTORY_FILE = os.getenv('MASTER_INVENTORY_FILE', 'master_inventory.csv')
+RECALL_LOG_FILE = os.getenv('RECALL_LOG_FILE', 'recall_requests_log.csv')
+AUDIT_LOG_FILE = os.getenv('AUDIT_LOG_FILE', 'audit_requests_log.csv')
+SETTINGS_FILE = os.getenv('SETTINGS_FILE', 'settings.json')
+LOGO_FILE = os.getenv('LOGO_FILE', 'logo.jpg')
+COMPANIES_FILE = os.getenv('COMPANIES_FILE', 'companies.csv')
 
 # --- 🛠️ SELF-HEALING DATABASE FUNCTION ---
 def repair_user_database():
@@ -1451,6 +1452,92 @@ else:
                     else:
                         st.error("Invalid email address.")
                     st.rerun()
+
+        # --- 👑 SUPER ADMIN: SYSTEM UPDATE & DATA ---
+        if st.session_state.get('username') == 'admin' and st.session_state.get('company') == 'WestWorld':
+            st.divider()
+            st.subheader("👑 Super Admin: System & Data")
+            
+            # 1. APPLICATION UPDATE
+            with st.expander("Update Application"):
+                st.warning("This will pull the latest code from GitHub and restart the app.")
+                
+                col_reset1, col_reset2 = st.columns(2)
+                with col_reset1: reset_users = st.checkbox("Dangerous: Reset 'users.csv' from Repo (Wipes live users)")
+                with col_reset2: reset_companies = st.checkbox("Dangerous: Reset 'companies.csv' from Repo (Wipes live data)")
+                
+                if st.button("🔄 Force Update from GitHub"):
+                    try:
+                        import subprocess
+                        import shutil
+                        
+                        # 1. Git Pull
+                        result = subprocess.run(["git", "pull"], capture_output=True, text=True)
+                        if result.returncode == 0:
+                            st.success(f"Git Pull Successful:\n{result.stdout}")
+                            
+                            # 2. Selective Data Reset
+                            def copy_from_repo(filename, target_path):
+                                if os.path.exists(filename):
+                                    shutil.copy(filename, target_path)
+                                    return True
+                                return False
+
+                            if reset_users:
+                                if copy_from_repo('users.csv', USER_DB_FILE):
+                                    st.warning(f"users.csv reset to default from repo -> {USER_DB_FILE}")
+                                    
+                            if reset_companies:
+                                if copy_from_repo('companies.csv', COMPANIES_FILE):
+                                    st.warning(f"companies.csv reset to default from repo -> {COMPANIES_FILE}")
+
+                            st.success("Restarting app...")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error(f"Git Pull Failed:\n{result.stderr}")
+                    except Exception as e:
+                        st.error(f"Update failed: {e}")
+
+            # 2. DATA FILE MANAGEMENT
+            with st.expander("Data File Management"):
+                st.info("Manage CSV files currently on the server (Live Data).")
+                
+                # List all CSVs in the data directory
+                data_dir = os.path.dirname(os.path.abspath(USER_DB_FILE))
+                if not data_dir: data_dir = "." 
+                
+                import glob
+                csv_files = glob.glob(os.path.join(data_dir, "*.csv"))
+                
+                if csv_files:
+                    st.write("### Download Live Data")
+                    st.caption(f"Found {len(csv_files)} .csv files in {data_dir}")
+                    for csv_path in csv_files:
+                        file_name = os.path.basename(csv_path)
+                        with open(csv_path, "rb") as f:
+                            st.download_button(
+                                label=f"Download {file_name}",
+                                data=f,
+                                file_name=file_name,
+                                mime="text/csv",
+                                key=f"dl_{file_name}"
+                            )
+                else:
+                    st.warning("No CSV files found in data directory.")
+                    
+                st.divider()
+                st.write("### Upload / Overwrite Data")
+                uploaded_file = st.file_uploader("Upload CSV to replace/add", type=['csv'])
+                if uploaded_file:
+                    target_path = os.path.join(data_dir, uploaded_file.name)
+                    st.warning(f"This will save/overwrite: `{target_path}`")
+                    if st.button(f"Confirm Save: {uploaded_file.name}"):
+                        with open(target_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+                        st.success(f"Saved {uploaded_file.name} to server.")
+                        time.sleep(1)
+                        st.rerun()
 
     # --- PAGE 7: MY PROFILE ---
     elif page == "My Profile":

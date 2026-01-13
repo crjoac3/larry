@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  larry-app:
+    build: .
+    container_name: larry_web
+    restart: always
+    ports:
+      - "8501:8501"
+    volumes:
+      # Persistent Data Volume
+      - larry_data:/data
+      # Mount the .git directory so the container can pull updates
+      # (Optional: remove this if you bake the repo into the image and don't want runtime pulls)
+      # But for "auto-update on restart", we need the .git context or we clone fresh.
+      # Strategy: We assume the image is built FROM the repo, but to pull new changes
+      # to the running container's code (which is ephemeral), we rely on the entrypoint 'git pull'.
+    environment:
+      - DATA_VOLUME=/data
+      - USER_DB_FILE=/data/users.csv
+      - COMPANIES_FILE=/data/companies.csv
+      - MASTER_INVENTORY_FILE=/data/master_inventory.csv
+      - RECALL_LOG_FILE=/data/recall_requests_log.csv
+      - AUDIT_LOG_FILE=/data/audit_requests_log.csv
+      - SETTINGS_FILE=/data/settings.json
+      - LOGO_FILE=/data/logo.jpg
+      # Add your SendGrid keys here or use a .env file
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
+
+volumes:
+  larry_data:
