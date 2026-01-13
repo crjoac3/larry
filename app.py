@@ -286,16 +286,83 @@ RECALL_LOG_FILE = 'recall_requests_log.csv'
 AUDIT_LOG_FILE = 'audit_requests_log.csv'
 SETTINGS_FILE = 'settings.json'
 LOGO_FILE = 'logo.jpg'
+COMPANIES_FILE = 'companies.csv'
 
 # --- 🛠️ SELF-HEALING DATABASE FUNCTION ---
 def repair_user_database():
     """Checks if users.csv validation state. If broken or old schema, resets or attempts migration."""
+    # 1. Repair Users DB
     reset_needed = False
-    migrated = False
     
     if not os.path.exists(USER_DB_FILE):
         reset_needed = True
     else:
+        try:
+            df = pd.read_csv(USER_DB_FILE)
+            # Check for old schema
+            req_cols = ['username', 'password', 'role', 'company', 'email', 'name', 'theme']
+            
+            save_required = False
+            if 'email' not in df.columns:
+                df['email'] = ''
+                save_required = True
+            if 'name' not in df.columns:
+                df['name'] = df['username'] # Default to username
+                save_required = True
+            if 'theme' not in df.columns:
+                df['theme'] = 'light'
+                save_required = True
+                
+            if save_required:
+                df.to_csv(USER_DB_FILE, index=False)
+                print("✅ Schema updated with missing columns.")
+                
+        except:
+            reset_needed = True
+
+    if reset_needed:
+        # Create a fresh file with WestWorld Super Admin
+        with open(USER_DB_FILE, 'w') as f:
+            f.write("username,password,role,company,email,name,theme\n")
+            f.write("admin,admin123,admin,WestWorld,admin@westworld.com,Chris Jakobsen,light\n")
+        print(f"⚠️ System repaired: {USER_DB_FILE} was recreated with new schema.")
+
+    # 2. Repair/Migrate Companies DB
+    companies_exist = set()
+    if os.path.exists(COMPANIES_FILE):
+        try:
+            c_df = pd.read_csv(COMPANIES_FILE)
+            if 'company_name' in c_df.columns:
+                companies_exist = set(c_df['company_name'].unique())
+        except: pass
+    
+    # Harvest legacy companies from Users and Inventory
+    legacy_companies = set()
+    if os.path.exists(USER_DB_FILE):
+        try:
+            u_df = pd.read_csv(USER_DB_FILE)
+            if 'company' in u_df.columns:
+                legacy_companies.update(u_df['company'].dropna().unique())
+        except: pass
+        
+    if os.path.exists(MASTER_INVENTORY_FILE):
+        try:
+            i_df = pd.read_csv(MASTER_INVENTORY_FILE)
+            # Try to find owner column case-insensitively
+            o_col = next((c for c in i_df.columns if c.lower() == 'owner'), None)
+            if o_col:
+                legacy_companies.update(i_df[o_col].dropna().unique())
+        except: pass
+    
+    # Merge and Save
+    all_companies = sorted(list(companies_exist | legacy_companies))
+    if not all_companies: all_companies = ["WestWorld"]
+    
+    # Re-save if we found new legacy ones not in file
+    if len(all_companies) > len(companies_exist):
+        new_df = pd.DataFrame({'company_name': all_companies, 'created_at': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+        new_df.to_csv(COMPANIES_FILE, index=False)
+        print("✅ Companies migrated to centralized DB.")
         try:
             df = pd.read_csv(USER_DB_FILE)
             # Check for new 'company', 'email', 'name', 'theme' columns
@@ -340,6 +407,38 @@ def repair_user_database():
 repair_user_database()
 
 # --- HELPER FUNCTIONS ---
+def get_all_companies():
+    """Returns list of all companies from centralized DB."""
+    if os.path.exists(COMPANIES_FILE):
+        try:
+            df = pd.read_csv(COMPANIES_FILE)
+            if 'company_name' in df.columns:
+                return sorted(df['company_name'].dropna().unique().tolist())
+        except:
+            return ["WestWorld"]
+    return ["WestWorld"]
+
+def add_company(name):
+    """Adds a new company to the DB."""
+    if not name: return False
+    
+    current = get_all_companies()
+    # Case insensitive check
+    if any(c.lower() == name.lower() for c in current): return False 
+    
+    # Append
+    df = pd.DataFrame({'company_name': [name], 'created_at': [datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")]})
+    
+    if os.path.exists(COMPANIES_FILE):
+        # Check if empty
+        if os.stat(COMPANIES_FILE).st_size == 0:
+             df.to_csv(COMPANIES_FILE, index=False)
+        else:
+             df.to_csv(COMPANIES_FILE, mode='a', header=False, index=False)
+    else:
+        df.to_csv(COMPANIES_FILE, index=False)
+    return True
+
 def load_data(file_path, default_cols=None):
     if os.path.exists(file_path):
         try:
@@ -573,7 +672,7 @@ else:
         
         # Super Admin & WestWorld Global Managers
         if is_global_admin():
-            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "Inventory Management", "User Management", "Settings", "My Profile"]
+            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "Inventory Management", "Company Management", "User Management", "Settings", "My Profile"]
         
         # Client Admin / Manager (Can manage their own users and branding)
         elif st.session_state['user_role'] == 'manager':
@@ -593,8 +692,9 @@ else:
         
         # If Global Admin, allow selecting any company
         if is_global_admin():
-            users_df = load_data(USER_DB_FILE)
-            company_list = ["All Companies"] + list(users_df[users_df['company'] != 'WestWorld']['company'].unique())
+            all_cos = get_all_companies()
+            client_cos = [c for c in all_cos if c != "WestWorld"]
+            company_list = ["All Companies"] + client_cos
             target_company = st.selectbox("Select Client View:", company_list)
         
         st.title(f"📦 Inventory: {target_company}")
@@ -888,8 +988,8 @@ else:
         st.title("📂 Inventory Management")
         st.info("Upload Master Excel to assign stock to a Client Company.")
         
-        users_df = load_data(USER_DB_FILE)
-        client_companies = users_df[users_df['company'] != 'WestWorld']['company'].unique()
+        all_cos = get_all_companies()
+        client_companies = [c for c in all_cos if c != "WestWorld"]
         
         with st.form("upload_form"):
             target_client_co = st.selectbox("Select Target Client (Company)", client_companies)
@@ -927,7 +1027,31 @@ else:
                     except Exception as e:
                         st.error(f"❌ Error processing file: {str(e)}")
 
-    # --- PAGE 5: USER MANAGEMENT ---
+
+    # --- PAGE: COMPANY MANAGEMENT ---
+    elif page == "Company Management":
+        st.title("🏢 Company Management")
+        st.info("Manage client companies independently of users or inventory.")
+        
+        c1, c2 = st.columns([1, 2])
+        
+        with c1:
+            st.subheader("Create New Company")
+            with st.form("create_company_form"):
+                new_co_name = st.text_input("New Company Name", placeholder="e.g. Acme Corp")
+                if st.form_submit_button("Create Company"):
+                    if add_company(new_co_name):
+                        st.success(f"✅ Company '{new_co_name}' created!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Company already exists or invalid name.")
+        
+        with c2:
+            st.subheader("Existing Companies")
+            companies = get_all_companies()
+            st.dataframe(pd.DataFrame(companies, columns=["Company Name"]), use_container_width=True, hide_index=True)
+
+    # --- PAGE 5: User Management ---
     elif page == "User Management":
         st.title("👥 User Administration")
         users_df = load_data(USER_DB_FILE)
@@ -956,12 +1080,8 @@ else:
                     
                     with c4: new_r = st.selectbox("Role", roles)
                     with c5: 
-                        # Get existing companies from inventory or users
-                        inv_data = load_data(MASTER_INVENTORY_FILE)
-                        # Robustly get owner column regardless of case
-                        o_col = next((c for c in inv_data.columns if c.lower() == 'owner'), None)
-                        inv_cos = set(inv_data[o_col].unique()) if o_col else set()
-                        known_cos = sorted(list(inv_cos | set(users_df['company'].unique())))
+                        # Get existing companies from centralized DB
+                        known_cos = get_all_companies()
                         new_co = st.selectbox("Company Name", known_cos)
                 else:
                     # Managers can create other managers or viewers for their own company
