@@ -106,7 +106,7 @@ def get_theme_css(theme):
     
     /* Custom Buttons - keep the brand feel */
     .stButton > button {
-        background-color: #00e5ff;
+        background-color: #00e5ff !important;
         color: #000000 !important;
         font-weight: bold;
         border: none;
@@ -114,9 +114,15 @@ def get_theme_css(theme):
         transition: all 0.3s ease;
     }
     .stButton > button:hover {
-        background-color: #00b8cc;
+        background-color: #00b8cc !important;
         transform: scale(1.02);
         box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+    
+    /* Specific styling for Form Submit Buttons if needed */
+    div[data-testid="stForm"] .stButton > button {
+        background-color: #00e5ff !important;
+        color: #000000 !important;
     }
     /* Fix for Table/Dataframe borders/text */
     [data-testid="stDataFrame"] {
