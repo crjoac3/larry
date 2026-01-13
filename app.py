@@ -132,6 +132,41 @@ def get_theme_css(theme):
     [data-testid="stDataFrame"] {
         border: 1px solid #dee2e6;
     }
+    
+    /* FIX: Top Header Bar */
+    header[data-testid="stHeader"] {
+        background-color: #ffffff !important;
+    }
+    
+    /* FIX: Expanders (like 'Additional Details') */
+    .streamlit-expanderHeader {
+        background-color: #f8f9fa !important;
+        color: #000000 !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    .streamlit-expanderContent {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #dee2e6 !important;
+        border-top: none !important;
+    }
+    
+    /* FIX: Dropdown Menus (Popover options) */
+    div[data-baseweb="popover"] {
+        background-color: #ffffff !important;
+    }
+    div[data-baseweb="menu"] {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    li[data-baseweb="option"] {
+         color: #000000 !important;
+    }
+    
+    /* FIX: Radio Buttons */
+    div[role="radiogroup"] label {
+        color: #000000 !important;
+    }
 </style>
 """
 
