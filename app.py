@@ -192,6 +192,16 @@ def get_theme_css(theme):
     div[data-testid="stSelectbox"] svg {
         fill: #000000 !important;
     }
+
+    /* FIX: Sidebar Collapse Control (The arrow to open sidebar) */
+    [data-testid="stSidebarCollapsedControl"] {
+        color: #000000 !important;
+        fill: #000000 !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] svg {
+        fill: #000000 !important;
+        color: #000000 !important;
+    }
     
     /* FIX: Radio Buttons */
     div[role="radiogroup"] label {
