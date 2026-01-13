@@ -98,12 +98,21 @@ def get_theme_css(theme):
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 1px solid #999999 !important; /* Made border darker */
+        caret-color: #000000 !important; /* Cursor color */
     }
+    .stTextInput input::placeholder {
+        color: #333333 !important; /* Placeholder text color */
+        opacity: 1 !important;
+    }
+    
     .stSelectbox > div > div > div {
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 1px solid #999999 !important; /* Made border darker */
         border-radius: 4px;
+    }
+    .stSelectbox div, .stSelectbox span {
+        color: #000000 !important;
     }
     
     /* Custom Buttons - Force ALL buttons to match specific brand styling */
@@ -180,11 +189,14 @@ def get_theme_css(theme):
          color: #000000 !important;
          border: 2px dashed #999999 !important; /* Visible dashed border */
     }
+    /* Force Text Color inside File Uploader */
+    [data-testid="stFileUploader"] section > div, 
+    [data-testid="stFileUploader"] section span, 
+    [data-testid="stFileUploader"] section small {
+        color: #000000 !important;
+    }
     [data-testid="stFileUploader"] svg {
         fill: #000000 !important;
-    }
-    [data-testid="stFileUploader"] small {
-        color: #000000 !important; /* Forced black for small text */
     }
     
     /* FIX: Expanders (Broad Targeting) */
