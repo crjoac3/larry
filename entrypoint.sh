@@ -6,7 +6,8 @@ echo "🐳 Starting Entrypoint Script..."
 # 1. Update Code from GitHub (if .git exists)
 if [ -d ".git" ]; then
     echo "🔄 Checking for updates from GitHub..."
-    git pull || echo "⚠️ Git pull failed, continuing with local version."
+    git fetch origin
+    git reset --hard origin/main || echo "⚠️ Git update failed."
 else
     echo "⚠️ No .git directory found. Skipping auto-update."
 fi

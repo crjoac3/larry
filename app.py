@@ -1471,10 +1471,13 @@ else:
                         import subprocess
                         import shutil
                         
-                        # 1. Git Pull
-                        result = subprocess.run(["git", "pull"], capture_output=True, text=True)
+                        # 1. Force Update (Fetch + Reset Hard)
+                        # This avoids "local changes" errors by discarding them.
+                        subprocess.run(["git", "fetch", "origin"], check=True)
+                        result = subprocess.run(["git", "reset", "--hard", "origin/main"], capture_output=True, text=True)
+                        
                         if result.returncode == 0:
-                            st.success(f"Git Pull Successful:\n{result.stdout}")
+                            st.success(f"Update Successful (Reset to origin/main):\n{result.stdout}")
                             
                             # 2. Selective Data Reset
                             def copy_from_repo(filename, target_path):
