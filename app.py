@@ -1990,8 +1990,7 @@ else:
                                 if copy_from_repo('companies.csv', COMPANIES_FILE):
                                     st.warning(f"companies.csv reset to default from repo -> {COMPANIES_FILE}")
 
-                            st.success("Restarting app...")
-                            time.sleep(1)
+                            st.success("Update successful. Reloading interface...")
                             st.rerun()
                             else:
                                 st.error(f"Git Pull Failed:\n{result.stderr}")

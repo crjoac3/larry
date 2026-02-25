@@ -8,11 +8,8 @@ services:
     volumes:
       # Persistent Data Volume
       - larry_data:/data
-      # Mount the .git directory so the container can pull updates
-      # (Optional: remove this if you bake the repo into the image and don't want runtime pulls)
-      # But for "auto-update on restart", we need the .git context or we clone fresh.
-      # Strategy: We assume the image is built FROM the repo, but to pull new changes
-      # to the running container's code (which is ephemeral), we rely on the entrypoint 'git pull'.
+      # Mount the application source code so in-container git pulls are persistent
+      - ./:/app
     environment:
       - DATA_VOLUME=/data
       - USER_DB_FILE=/data/users.csv
