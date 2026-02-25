@@ -4,6 +4,9 @@ set -e
 echo "🐳 Starting Entrypoint Script..."
 
 # 1. Update Code from GitHub (Auto-init if missing)
+# Explicitly move to the application code directory
+cd /app || echo "⚠️ Could not cd to /app, proceeding anyway..."
+
 # Fix for "dubious ownership" error in Docker (Exit 128)
 git config --global --add safe.directory /app
 
