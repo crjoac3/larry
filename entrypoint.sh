@@ -7,13 +7,6 @@ echo "🐳 Starting Entrypoint Script..."
 # Explicitly move to the application code directory
 cd /app || echo "⚠️ Could not cd to /app, proceeding anyway..."
 
-# Fix for "dubious ownership" and filesystem boundary errors in Docker
-git config --global --add safe.directory '*'
-
-# Fix for "fatal: not a git repository... Stopping at filesystem boundary"
-# This occurs because Docker mounts ./ as a new filesystem volume at /app
-export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-
 if [ "$GIT_UPDATE" = "true" ]; then
     echo "🔄 Checking for updates from GitHub..."
     if [ ! -d ".git" ]; then
@@ -21,6 +14,10 @@ if [ "$GIT_UPDATE" = "true" ]; then
         git init
         git remote add origin https://github.com/crjoac3/larry.git || true
     fi
+    
+    # Fix for "dubious ownership" and filesystem boundary errors in Docker
+    # Moved down here so it only runs AFTER we guarantee a .git dir exists
+    git config --global --add safe.directory '*'
     
     # Try to update, but don't fail the whole script if it fails (e.g. no internet)
     if git fetch origin; then
