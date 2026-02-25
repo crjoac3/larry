@@ -34,12 +34,10 @@ services:
       - "traefik.http.routers.ww_portal.tls.certresolver=letsencrypt"
       - "traefik.http.services.ww_portal.loadbalancer.server.port=8501"
       - "traefik.docker.network=proxy-net"
-    restart: unless-stopped
 
 networks:
   proxy-net:
     external: true
-
 
 volumes:
   larry_data:
