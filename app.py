@@ -20,41 +20,94 @@ def get_theme_css(theme):
     if theme == 'dark':
         return """
 <style>
-    /* WestWorld Dark Theme */
+    /* WestWorld Premium Dark Theme */
     .stApp {
-        background-color: #0e1117;
+        background-color: #0e1117 !important;
+        color: #fafafa !important;
+    }
+    
+    /* Text Visibility Fixes */
+    h1, h2, h3, h4, h5, h6, p, label, span, div {
         color: #fafafa;
     }
+    
+    /* Specific overrides for sidebar nav */
+    [data-testid="stSidebar"] label, [data-testid="stSidebar"] span, [data-testid="stSidebar"] p {
+        color: #fafafa !important;
+    }
+    
     .stTextInput > div > div > input {
-        background-color: #262730;
-        color: #ffffff;
-        border: 1px solid #4b5563;
+        background-color: #262730 !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        border: 1px solid #4b5563 !important;
+        caret-color: #ffffff !important;
     }
     .stSelectbox > div > div > div {
-        background-color: #262730;
-        color: #ffffff;
+        background-color: #262730 !important;
+        color: #ffffff !important;
+        border: 1px solid #4b5563 !important;
+    }
+    .stSelectbox div, .stSelectbox span {
+        color: #ffffff !important;
     }
     div[data-testid="stMetric"] {
-        background-color: #1f2937;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 5px solid #00e5ff;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        background-color: #1f2937 !important;
+        padding: 15px !important;
+        border-radius: 8px !important;
+        border-left: 5px solid #00e5ff !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+    div[data-testid="stMetric"] label, div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #ffffff !important;
     }
     [data-testid="stSidebar"] {
-        background-color: #111827;
-        border-right: 1px solid #374151;
+        background-color: #111827 !important;
+        border-right: 1px solid #374151 !important;
     }
-    .stButton > button {
-        background-color: #00e5ff;
-        color: #000000;
-        font-weight: bold;
-        border: none;
-        transition: all 0.3s ease;
+    
+    /* Custom Buttons - Force ALL buttons to match specific brand styling */
+    .stButton > button, 
+    div[data-testid="stForm"] button, 
+    button[kind="primary"], 
+    button[kind="secondary"] {
+        background-color: #00e5ff !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+        border: 1px solid #00b8cc !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease !important;
     }
-    .stButton > button:hover {
-        background-color: #00b8cc;
+    .stButton > button:hover, 
+    div[data-testid="stForm"] button:hover,
+    button[kind="primary"]:hover, 
+    button[kind="secondary"]:hover {
+        background-color: #00b8cc !important;
         transform: scale(1.02);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
+        color: #000000 !important;
+    }
+    
+    /* Radio Buttons / Theme Selector */
+    div[role="radiogroup"] label {
+        color: #fafafa !important;
+    }
+    
+    /* Header Bar */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+    }
+    
+    /* FIX: Canvas Table/Dataframe Background in Dark Mode */
+    /* st.dataframe ignores CSS colors since it's Canvas. We MUST invert the light mode table visually. */
+    [data-testid="stDataFrame"] {
+        filter: invert(1) hue-rotate(180deg) !important;
+        border: 1px solid #4b5563 !important;
+    }
+    
+    /* REMOVE "SELECT ALL" TOGGLE FROM COLUMN SELECTOR */
+    div[data-baseweb="popover"] label:first-of-type {
+        display: none !important;
     }
 </style>
 """
@@ -62,10 +115,10 @@ def get_theme_css(theme):
         # Premium Light Theme
         return """
 <style>
-    /* Premium Light Theme - Force Text Colors */
+    /* Premium Light Theme - Soft Background, Dark Text */
     .stApp {
-        background-color: #ffffff;
-        color: #000000 !important;
+        background-color: #f4f6f9 !important; /* Soft slate/off-white background instead of blinding white */
+        color: #111111 !important;
     }
     
     /* Text Visibility Fixes */
@@ -90,6 +143,20 @@ def get_theme_css(theme):
         color: #000000 !important;
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #000000 !important;
+    }
+    
+    /* Fix for Table/Dataframe borders/text */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #999999 !important;
+    }
+    
+    /* FIX: Dropdown & Data Grid Active Selection Text Contrast */
+    div.gdg-portal *,
+    li[role="option"],
+    li[role="option"] *,
+    div[data-baseweb="menu"] *,
+    div[data-baseweb="popover"] * {
         color: #000000 !important;
     }
 
@@ -139,49 +206,29 @@ def get_theme_css(theme):
         color: #000000 !important;
     }
     
-    /* Fix for Table/Dataframe borders/text */
-    [data-testid="stDataFrame"] {
-        border: 1px solid #999999 !important;
-    }
-    
     /* FIX: Top Header Bar */
     header[data-testid="stHeader"] {
-        background-color: #ffffff !important;
+        background-color: transparent !important;
     }
     
     /* FIX: Expanders (like 'Additional Details') */
     .streamlit-expanderHeader {
-        background-color: #f8f9fa !important;
+        background-color: #ffffff !important;
         color: #000000 !important;
-        border: 1px solid #999999 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 6px 6px 0 0 !important;
     }
     .streamlit-expanderContent {
         background-color: #ffffff !important;
         color: #000000 !important;
-        border: 1px solid #999999 !important;
+        border: 1px solid #d1d5db !important;
         border-top: none !important;
+        border-radius: 0 0 6px 6px !important;
     }
     
-    /* FIX: Dropdown Menus (Popover options) */
-    div[data-baseweb="popover"] {
-        background-color: #ffffff !important;
-        border: 1px solid #999999 !important;
-    }
-    div[data-baseweb="menu"] {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-    }
-    /* Aggressive Catch-all for Dropdown Internals */
-    div[data-baseweb="popover"] > div,
-    div[data-baseweb="popover"] ul,
-    div[data-baseweb="popover"] li,
-    div[data-baseweb="popover"] span,
-    div[data-baseweb="popover"] div {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-    }
-    li[data-baseweb="option"] {
-         color: #000000 !important;
+    /* REMOVE "SELECT ALL" TOGGLE FROM COLUMN SELECTOR */
+    div[data-baseweb="popover"] label:first-of-type {
+        display: none !important;
     }
     
     /* FIX: Selectbox Arrow/Caret */
@@ -193,7 +240,7 @@ def get_theme_css(theme):
         fill: #000000 !important;
     }
 
-    /* FIX: Sidebar Collapse Control (The arrow to open sidebar) */
+    /* FIX: Sidebar Collapse Control */
     [data-testid="stSidebarCollapsedControl"] {
         color: #000000 !important;
         fill: #000000 !important;
@@ -203,8 +250,12 @@ def get_theme_css(theme):
         opacity: 1 !important;
         z-index: 100000 !important;
     }
+    [data-testid="stSidebarCollapsedControl"] svg {
+        fill: #000000 !important;
+        color: #000000 !important;
+    }
     
-    /* FIX: Text Area (Address Box) - Aggressive Overrides */
+    /* FIX: Text Area */
     div[data-testid="stTextArea"] textarea {
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -220,13 +271,24 @@ def get_theme_css(theme):
     /* FIX: File Uploader Text */
     [data-testid="stFileUploader"] span, 
     [data-testid="stFileUploader"] small, 
-    [data-testid="stFileUploader"] div {
+    [data-testid="stFileUploader"] div,
+    [data-testid="stFileUploader"] p {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
     }
-    [data-testid="stSidebarCollapsedControl"] svg {
-        fill: #000000 !important;
+    [data-testid="stFileUploader"] {
+        background-color: #ffffff;
+    }
+    [data-testid="stFileUploader"] section {
+        background-color: #f8f9fa !important;
+        border: 2px dashed #999999 !important;
         color: #000000 !important;
+    }
+    [data-testid="stFileUploader"] section > button {
+         color: #000000 !important; /* Browse button text */
+    }
+    [data-testid="stFileUploader"] svg {
+        fill: #000000 !important;
     }
     
     /* FIX: Radio Buttons */
@@ -234,22 +296,43 @@ def get_theme_css(theme):
         color: #000000 !important;
     }
     
-    /* FIX: DataFrame (Invert Dark Theme to Light) */
-    [data-testid="stDataFrame"] {
-        filter: invert(1) hue-rotate(180deg);
-        border: 1px solid #cccccc !important;
+    /* FIX: DataFrame Toolbar Overlay Icons */
+    [data-testid="stElementToolbar"], .stElementToolbar {
+        background-color: transparent !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: flex !important;
+    }
+    [data-testid="stElementToolbar"] button,
+    .stElementToolbar button,
+    [data-testid="stElementToolbar"] button:hover,
+    .stElementToolbar button:hover {
+        color: #000000 !important;
+        background-color: transparent !important;
+    }
+    [data-testid="stElementToolbar"] svg,
+    .stElementToolbar svg,
+    [data-testid="stElementToolbar"] button:hover svg,
+    .stElementToolbar button:hover svg {
+        fill: #000000 !important;
+        stroke: #000000 !important;
+        color: #000000 !important;
     }
     
-    /* FIX: File Uploader */
-    [data-testid="stFileUploader"] {
-        background-color: #ffffff;
+    /* FIX: Tooltips */
+    div[data-baseweb="tooltip"] {
+        background-color: #f8f9fa !important;
+        border: 1px solid #cccccc !important;
     }
+    div[data-baseweb="tooltip"] * {
+        color: #000000 !important;
+    }
+
     /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background-color: #e8eaed !important;
         border-right: 1px solid #d0d0d0;
     }
-    
     [data-testid="stSidebar"] .stMarkdown, 
     [data-testid="stSidebar"] p, 
     [data-testid="stSidebar"] h1, 
@@ -258,26 +341,6 @@ def get_theme_css(theme):
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] label {
         color: #000000 !important;
-    }
-    
-    [data-testid="stFileUploader"] section {
-        background-color: #f8f9fa !important;
-        border: 2px dashed #999999 !important;
-        color: #000000 !important;
-    }
-    /* FIX: Uploaded File List Text (Filename, etc) */
-    [data-testid="stFileUploader"] div,
-    [data-testid="stFileUploader"] span,
-    [data-testid="stFileUploader"] small,
-    [data-testid="stFileUploader"] p {
-        color: #000000 !important;
-    }
-    
-    [data-testid="stFileUploader"] section > button {
-         color: #000000 !important; /* Browse button text */
-    }
-    [data-testid="stFileUploader"] svg {
-        fill: #000000 !important;
     }
     
     /* FIX: Expanders (Broad Targeting) */
@@ -635,11 +698,12 @@ def save_settings(settings):
     with open(SETTINGS_FILE, 'w') as f:
         json.dump(settings, f)
 
-def process_recall_request(items_df, user, company):
+def process_recall_request(items_df, user, company, comment=""):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = items_df.copy()
-    if 'Select' in log_entry.columns:
-        log_entry = log_entry.drop(columns=['Select'])
+    for col in ['Select', 'Select for Recall', 'Select for Audit']:
+        if col in log_entry.columns:
+            log_entry = log_entry.drop(columns=[col])
     log_entry['Requested By'] = user
     log_entry['Company'] = company # Fallback if not present
     # If the dataframe already has a 'Company' column (e.g. All Companies view), use that.
@@ -649,6 +713,7 @@ def process_recall_request(items_df, user, company):
     else:
         log_entry['Company'] = company
     log_entry['Request Time'] = timestamp
+    log_entry['Recall Comment'] = comment
     log_entry['Status'] = 'Pending' # Init status
     
     old_log = load_data(RECALL_LOG_FILE)
@@ -656,6 +721,11 @@ def process_recall_request(items_df, user, company):
         old_log['Status'] = 'Pending'
         
     new_log = pd.concat([old_log, log_entry], ignore_index=True)
+    
+    # Prevent double-click duplicates by dropping identical rows (ignoring the timestamp)
+    check_cols = [c for c in new_log.columns if c != 'Request Time']
+    new_log = new_log.drop_duplicates(subset=check_cols, keep='last')
+    
     save_data(new_log, RECALL_LOG_FILE)
     
     # Notify logic: Find matching emails
@@ -695,8 +765,9 @@ def process_recall_request(items_df, user, company):
 def process_audit_request(items_df, user, company, comment):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = items_df.copy()
-    if 'Select' in log_entry.columns:
-        log_entry = log_entry.drop(columns=['Select'])
+    for col in ['Select', 'Select for Recall', 'Select for Audit']:
+        if col in log_entry.columns:
+            log_entry = log_entry.drop(columns=[col])
     
     log_entry['Requested By'] = user
     log_entry['Company'] = company
@@ -709,6 +780,11 @@ def process_audit_request(items_df, user, company, comment):
     
     old_log = load_data(AUDIT_LOG_FILE)
     new_log = pd.concat([old_log, log_entry], ignore_index=True)
+    
+    # Prevent double-click duplicates by dropping identical rows (ignoring the timestamp)
+    check_cols = [c for c in new_log.columns if c != 'Request Time']
+    new_log = new_log.drop_duplicates(subset=check_cols, keep='last')
+    
     save_data(new_log, AUDIT_LOG_FILE)
     return True
 
@@ -801,15 +877,15 @@ else:
         st.divider()
         
         # Menu Permissions
-        menu_options = ["Inventory Search", "Recall Management", "Audit Management", "My Profile"]
+        menu_options = ["Inventory", "My Profile"]
         
         # Super Admin & WestWorld Global Managers
         if is_global_admin():
-            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "Inventory Management", "Company Management", "User Management", "Settings", "My Profile"]
+            menu_options = ["Inventory", "Recall Management", "Audit Management", "Inventory Management", "Company Management", "User Management", "Settings", "My Profile"]
         
-        # Client Admin / Manager (Can manage their own users and branding)
+        # Client Admin / Manager (Can manage their own users and branding, but UI is consolidated)
         elif st.session_state['user_role'] == 'manager':
-            menu_options = ["Inventory Search", "Recall Management", "Audit Management", "User Management", "My Profile"]
+            menu_options = ["Inventory", "User Management", "My Profile"]
             
         page = st.radio("Navigate", menu_options)
             
@@ -818,8 +894,8 @@ else:
             st.session_state.update({'logged_in': False, 'user_role': None, 'username': None, 'company': None, 'name': None})
             st.rerun()
 
-    # --- PAGE 1: INVENTORY SEARCH ---
-    if page == "Inventory Search":
+    # --- PAGE 1: INVENTORY ---
+    if page == "Inventory":
         # Determine which company's inventory to show
         target_company = st.session_state['company']
         
@@ -841,17 +917,25 @@ else:
             else:
                 user_df = df[df['owner'] == target_company].drop(columns=['owner'])
             
-            if not user_df.empty:
+            recall_log_df = load_data(RECALL_LOG_FILE)
+            if target_company != "All Companies" and not recall_log_df.empty:
+                if 'Company' in recall_log_df.columns:
+                    recall_log_df = recall_log_df[recall_log_df['Company'] == target_company]
+            
+            if not user_df.empty or not recall_log_df.empty:
                 # View Filters
-                filter_mode = st.radio("Show Details:", ["All Equipment Received", "Equipment On-Hand", "Equipment Sold"], horizontal=True)
-                display_df = user_df.copy()
+                filter_mode = st.radio("Show Details:", ["Equipment On-Hand", "Equipment Sold", "Recalled Equipment"], horizontal=True)
                 
-                if filter_mode == "Equipment On-Hand":
-                    if 'Status' in display_df.columns:
-                        display_df = display_df[display_df['Status'].astype(str).str.upper().str.contains("ON HAND") | display_df['Status'].isnull()]
-                elif filter_mode == "Equipment Sold":
-                    if 'Status' in display_df.columns:
-                        display_df = display_df[display_df['Status'].astype(str).str.upper().str.contains("SOLD")]
+                if filter_mode == "Recalled Equipment":
+                    display_df = recall_log_df.copy()
+                else:
+                    display_df = user_df.copy()
+                    if filter_mode == "Equipment On-Hand":
+                        if 'Status' in display_df.columns:
+                            display_df = display_df[display_df['Status'].astype(str).str.upper().str.contains("ON HAND") | display_df['Status'].isnull()]
+                    elif filter_mode == "Equipment Sold":
+                        if 'Status' in display_df.columns:
+                            display_df = display_df[display_df['Status'].astype(str).str.upper().str.contains("SOLD")]
 
                 # Metrics
                 m1, m2, m3 = st.columns(3)
@@ -859,13 +943,22 @@ else:
                 m2.metric("Unique POs", display_df['PO'].nunique() if 'PO' in display_df.columns else 0)
                 
                 val = "N/A"
-                if 'Sales Price' in display_df.columns:
-                    try:
-                        total_sum = display_df['Sales Price'].replace(r'[\$,]', '', regex=True).astype(float).sum()
-                        val = f"${total_sum:,.2f}"
-                    except:
-                        pass
-                m3.metric("Total Asset Value", val)
+                if filter_mode == "Equipment Sold":
+                    if 'Sales Price' in display_df.columns:
+                        try:
+                            total_sum = display_df['Sales Price'].replace(r'[\$,]', '', regex=True).astype(float).sum()
+                            val = f"${total_sum:,.2f}"
+                        except:
+                            pass
+                    m3.metric("Total Sales Value", val)
+                else:
+                    if 'Cost' in display_df.columns:
+                        try:
+                            total_sum = display_df['Cost'].replace(r'[\$,]', '', regex=True).astype(float).sum()
+                            val = f"${total_sum:,.2f}"
+                        except:
+                            pass
+                    m3.metric("Total Asset Value", val)
                 
                 st.markdown("---")
                 
@@ -877,32 +970,134 @@ else:
 
                 # Interactive Data Table
                 if filter_mode == "Equipment On-Hand":
-                    st.caption("Select items to request a recall:")
-                    if "Select" not in display_df.columns:
-                        display_df.insert(0, "Select", False)
+                    st.caption("Select items to request a recall or an audit:")
+                    
+                    # Remove empty cost columns for On-Hand view if they exist
+                    cols_to_drop = [c for c in ['Cost', 'Sales Price'] if c in display_df.columns]
+                    if cols_to_drop:
+                        display_df = display_df.drop(columns=cols_to_drop)
+                    
+                    # Split Date column into Month, Day, Year
+                    if 'Date' in display_df.columns:
+                        try:
+                            temp_dates = pd.to_datetime(display_df['Date'], errors='coerce')
+                            date_idx = list(display_df.columns).index('Date')
+                            if 'Month' not in display_df.columns: display_df.insert(date_idx, 'Month', temp_dates.dt.month.astype('Int64'))
+                            if 'Day' not in display_df.columns: display_df.insert(date_idx+1, 'Day', temp_dates.dt.day.astype('Int64'))
+                            if 'Year' not in display_df.columns: display_df.insert(date_idx+2, 'Year', temp_dates.dt.year.astype('Int64'))
+                            display_df = display_df.drop(columns=['Date'])
+                        except Exception:
+                            pass
+                            
+                    # Add Condition Dropdown column for later use
+                    if "Condition" not in display_df.columns:
+                        # Insert next to Status if it exists, else at the end
+                        insert_idx = list(display_df.columns).index('Status') + 1 if 'Status' in display_df.columns else len(display_df.columns)
+                        display_df.insert(insert_idx, "Condition", "Refurb")
+                    else:
+                        # If Condition already exists in the CSV data but has None/NaN/Empties, overwrite them entirely
+                        display_df['Condition'] = display_df['Condition'].fillna("Refurb").replace(["", "None", "NaN", None], "Refurb")
+                        
+                    if "Select for Recall" not in display_df.columns:
+                        display_df.insert(0, "Select for Recall", False)
+                    if "Select for Audit" not in display_df.columns:
+                        display_df.insert(1, "Select for Audit", False)
+                        
                     edited = st.data_editor(
                         display_df, 
                         hide_index=True, 
                         width="stretch", 
                         column_config={
-                            "Select": st.column_config.CheckboxColumn(required=True),
-                            "Sales Price": st.column_config.NumberColumn(format="$%.2f")
+                            "Select for Recall": st.column_config.CheckboxColumn(required=True),
+                            "Select for Audit": st.column_config.CheckboxColumn(required=True),
+                            "Sales Price": st.column_config.NumberColumn(format="$%.2f"),
+                            "Cost": st.column_config.NumberColumn(format="$%.2f"),
+                            "Partner Allocation - Cost": st.column_config.NumberColumn(format="$%.2f"),
+                            "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY"),
+                            "Condition": st.column_config.SelectboxColumn(
+                                "Condition", 
+                                help="Double-click to select condition", 
+                                options=["Refurb", "Defective"],
+                                required=False
+                            )
                         }
                     )
                     
-                    if not edited[edited.Select].empty:
-                        st.markdown("### Recall Request")
-                        if st.button(f"🚀 Request Recall for {len(edited[edited.Select])} Item(s)"):
-                            # Pass target_company to ensure correct attribution (not just who is logged in)
-                            # Pass 'name' for Requested By
-                            requester_name = st.session_state.get('name', st.session_state['username'])
-                            emails = process_recall_request(edited[edited.Select], requester_name, target_company)
-                            st.balloons()
-                            st.success(f"✅ Recall request submitted! Notifications sent to: {emails}")
+                    recall_items = edited[edited["Select for Recall"]]
+                    audit_items = edited[edited["Select for Audit"]]
+                    
+                    if not recall_items.empty or not audit_items.empty:
+                        st.markdown("### Actions")
+                        
+                        if not recall_items.empty:
+                            with st.expander(f"🚀 Request Recall for {len(recall_items)} Item(s)", expanded=True):
+                                recall_comment = st.text_area("Reason for Recall", placeholder="Enter recall details or instructions...")
+                                if st.button("Submit Recall"):
+                                    if not recall_comment.strip():
+                                        st.warning("Please provide a comment for the recall request.")
+                                    else:
+                                        requester_name = st.session_state.get('name', st.session_state['username'])
+                                        emails = process_recall_request(recall_items, requester_name, target_company, recall_comment)
+                                        st.balloons()
+                                        st.success(f"✅ Recall request submitted! Notifications sent to: {emails}")
+                                        st.rerun()
+                                
+                        if not audit_items.empty:
+                            with st.expander(f"🚩 Submit Audit Request for {len(audit_items)} Item(s)", expanded=True):
+                                audit_comment = st.text_area("Reason for Audit", placeholder="Enter details or discrepancies here...")
+                                if st.button("Submit Audit"):
+                                    if not audit_comment.strip():
+                                        st.warning("Please provide a comment for the audit request.")
+                                    else:
+                                        requester_name = st.session_state.get('name', st.session_state['username'])
+                                        process_audit_request(audit_items, requester_name, target_company, audit_comment)
+                                        st.success("✅ Audit request submitted successfully! Items remain in your inventory view.")
+                                        st.rerun()
+                elif filter_mode == "Recalled Equipment":
+                    st.caption("Recalled Equipment History:")
+                    if not display_df.empty:
+                        # Generate hyperlinked tracking URLs if tracking numbers exist
+                        if 'Tracking Number' in display_df.columns:
+                            display_df['Tracking Link'] = display_df['Tracking Number'].apply(
+                                lambda x: f"https://www.google.com/search?q={str(x).strip()}" if pd.notna(x) and str(x).strip() else None
+                            )
+                        else:
+                            display_df['Tracking Link'] = None
+                            
+                        # Remove actual Tracking Number column to just render the URL column as 'Track'
+                        display_cols = display_df.columns.tolist()
+                        if 'Tracking Number' in display_cols: 
+                            display_cols.remove('Tracking Number')
+                            
+                        st.dataframe(
+                            display_df[display_cols],
+                            hide_index=True,
+                            width="stretch",
+                            column_config={
+                                "Tracking Link": st.column_config.LinkColumn("Tracking Number", display_text="Track", help="Click to search Tracking Number"),
+                                "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY"),
+                                "Sales Price": st.column_config.NumberColumn(format="$%.2f"),
+                                "Cost": st.column_config.NumberColumn(format="$%.2f"),
+                                "Partner Allocation - Cost": st.column_config.NumberColumn(format="$%.2f")
+                            }
+                        )
+                    else:
+                        st.info("No recorded recalls for this company.")
                 else:
-                    st.dataframe(display_df, hide_index=True, width="stretch")
+                    st.dataframe(
+                        display_df, 
+                        hide_index=True, 
+                        width="stretch",
+                        column_config={
+                            "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY"),
+                            "Sales Price": st.column_config.NumberColumn(format="$%.2f"),
+                            "Cost": st.column_config.NumberColumn(format="$%.2f"),
+                            "Partner Allocation - Cost": st.column_config.NumberColumn(format="$%.2f")
+                        }
+                    )
                 
-                st.download_button("📥 Export to CSV", display_df.to_csv(index=False).encode('utf-8'), "inventory_export.csv", "text/csv")
+                if not display_df.empty:
+                    st.download_button("📥 Export to CSV", display_df.to_csv(index=False).encode('utf-8'), "inventory_export.csv", "text/csv")
             else:
                 st.warning(f"No inventory records found for **{target_company}**.")
         else:
@@ -925,7 +1120,16 @@ else:
                 # Client View: See OWN requests only
                 view_df = recall_df[recall_df['Company'] == st.session_state['company']]
                 st.subheader("Your Request History")
-                st.dataframe(view_df.sort_values('Request Time', ascending=False), hide_index=True, width="stretch")
+                st.dataframe(
+                    view_df.sort_values('Request Time', ascending=False), 
+                    hide_index=True, 
+                    width="stretch",
+                    column_config={
+                        "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY"),
+                        "Sales Price": st.column_config.NumberColumn(format="$%.2f"),
+                        "Cost": st.column_config.NumberColumn(format="$%.2f")
+                    }
+                )
             else:
                 # Super Admin View
                 st.subheader("Active Recall Queue")
@@ -938,47 +1142,77 @@ else:
                     if active_df.empty:
                         st.success("🎉 All caught up! No pending recalls.")
                     else:
-                        st.info("Select items to mark as RECEIVED. ⚠️ This will REMOVE them from the Master Inventory.")
+                        st.info("Fill out tracking and location information, then select items to mark as RECEIVED. ⚠️ This will REMOVE them from the Master Inventory.")
                         active_df.insert(0, "Mark Received", False)
-                        edited_recall = st.data_editor(active_df, hide_index=True, width="stretch", column_config={"Mark Received": st.column_config.CheckboxColumn(required=True)})
+                        
+                        if "Tracking Number" not in active_df.columns: active_df["Tracking Number"] = ""
+                        if "Location - Bin" not in active_df.columns: active_df["Location - Bin"] = ""
+                        if "Location - Warehouse" not in active_df.columns: active_df["Location - Warehouse"] = ""
+                        
+                        # Prevent StreamlitAPIException: "column type text... not compatible... data type float"
+                        for col in ["Tracking Number", "Location - Bin", "Location - Warehouse"]:
+                            active_df[col] = active_df[col].fillna("").astype(str)
+                        
+                        edited_recall = st.data_editor(
+                            active_df, 
+                            hide_index=True, 
+                            width="stretch", 
+                            column_config={
+                                "Mark Received": st.column_config.CheckboxColumn(required=True),
+                                "Tracking Number": st.column_config.TextColumn("Tracking Number"),
+                                "Location - Bin": st.column_config.TextColumn("Bin"),
+                                "Location - Warehouse": st.column_config.TextColumn("Warehouse"),
+                                "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY"),
+                                "Sales Price": st.column_config.NumberColumn(format="$%.2f"),
+                                "Cost": st.column_config.NumberColumn(format="$%.2f")
+                            }
+                        )
                         
                         if st.button("✅ Confirm Receipt & Remove from Inventory"):
                             to_update = edited_recall[edited_recall['Mark Received']]
                             if not to_update.empty:
-                                master_inventory = load_data(MASTER_INVENTORY_FILE)
-                                removed_count = 0
-                                
-                                for idx, row in to_update.iterrows():
-                                    # 1. Update Status in Recall Log using UNIQUE INDEX
-                                    if idx in recall_df.index:
-                                        recall_df.loc[idx, 'Status'] = 'Completed'
-                                        recall_df.loc[idx, 'Processed By'] = st.session_state.get('name', st.session_state['username'])
+                                # Validation: Ensure Tracking Number is provided
+                                missing_tracking = to_update[to_update['Tracking Number'].str.strip() == ""]
+                                if not missing_tracking.empty:
+                                    st.error("⚠️ Cannot confirm receipt: A Tracking Number is required for all selected items.")
+                                else:
+                                    master_inventory = load_data(MASTER_INVENTORY_FILE)
+                                    removed_count = 0
                                     
-                                    # 2. Remove from Master Inventory (Granular Removal)
-                                    if not master_inventory.empty:
-                                        inv_mask = None
+                                    for idx, row in to_update.iterrows():
+                                        # 1. Update Status & Tracking in Recall Log using UNIQUE INDEX
+                                        if idx in recall_df.index:
+                                            recall_df.loc[idx, 'Status'] = 'Completed'
+                                            recall_df.loc[idx, 'Processed By'] = st.session_state.get('name', st.session_state['username'])
+                                            if 'Tracking Number' in row: recall_df.loc[idx, 'Tracking Number'] = row['Tracking Number']
+                                            if 'Location - Bin' in row: recall_df.loc[idx, 'Location - Bin'] = row['Location - Bin']
+                                            if 'Location - Warehouse' in row: recall_df.loc[idx, 'Location - Warehouse'] = row['Location - Warehouse']
                                         
-                                        # Strict Match Logic
-                                        if 'Serial Number' in row and not pd.isna(row['Serial Number']):
-                                            if 'Serial Number' in master_inventory.columns:
-                                                inv_mask = master_inventory['Serial Number'] == row['Serial Number']
-                                        elif 'PO' in row and not pd.isna(row['PO']):
-                                            if 'PO' in master_inventory.columns:
-                                                inv_mask = master_inventory['PO'] == row['PO']
+                                        # 2. Remove from Master Inventory (Granular Removal)
+                                        if not master_inventory.empty:
+                                            inv_mask = None
                                             
-                                        if inv_mask is not None and inv_mask.any():
-                                            # FIND ALL COMPLETELY MATCHING ITEMS, BUT ONLY REMOVE ONE
-                                            # This prevents wiping out 5 identical items if we only recalled 1
-                                            matching_indices = master_inventory[inv_mask].index.tolist()
-                                            if matching_indices:
-                                                drop_idx = matching_indices[0] # Drop only the first match
-                                                master_inventory = master_inventory.drop(drop_idx)
-                                                removed_count += 1
+                                            # Strict Match Logic
+                                            if 'Serial Number' in row and not pd.isna(row['Serial Number']):
+                                                if 'Serial Number' in master_inventory.columns:
+                                                    inv_mask = master_inventory['Serial Number'] == row['Serial Number']
+                                            elif 'PO' in row and not pd.isna(row['PO']):
+                                                if 'PO' in master_inventory.columns:
+                                                    inv_mask = master_inventory['PO'] == row['PO']
+                                                
+                                            if inv_mask is not None and inv_mask.any():
+                                                # FIND ALL COMPLETELY MATCHING ITEMS, BUT ONLY REMOVE ONE
+                                                # This prevents wiping out 5 identical items if we only recalled 1
+                                                matching_indices = master_inventory[inv_mask].index.tolist()
+                                                if matching_indices:
+                                                    drop_idx = matching_indices[0] # Drop only the first match
+                                                    master_inventory = master_inventory.drop(drop_idx)
+                                                    removed_count += 1
 
-                                save_data(recall_df, RECALL_LOG_FILE)
-                                save_data(master_inventory, MASTER_INVENTORY_FILE)
-                                st.success(f"Updated! {removed_count} items removed from Master Inventory.")
-                                st.rerun()
+                                    save_data(recall_df, RECALL_LOG_FILE)
+                                    save_data(master_inventory, MASTER_INVENTORY_FILE)
+                                    st.success(f"Updated! {removed_count} items removed from Master Inventory.")
+                                    st.rerun()
                 else:
                     # History
                     history_df = recall_df[recall_df['Status'] == 'Completed'].copy()
@@ -989,11 +1223,32 @@ else:
                         st.warning("⚠️ 'Restock' will add the item BACK to the Master Inventory and set status to 'Restocked'.")
                         
                         history_df.insert(0, "Restock", False)
+                        
+                        # Generate hyperlinked tracking URLs if tracking numbers exist
+                        if 'Tracking Number' in history_df.columns:
+                            # Use regex or simple replace to ensure valid URL text but display cleanly as a link
+                            history_df['Tracking Link'] = history_df['Tracking Number'].apply(
+                                lambda x: f"https://www.google.com/search?q={str(x).strip()}" if pd.notna(x) and str(x).strip() else None
+                            )
+                        else:
+                            history_df['Tracking Link'] = None
+                            
+                        # Remove actual Tracking Number column to just render the URL column as 'Track'
+                        display_cols = history_df.columns.tolist()
+                        if 'Tracking Number' in display_cols: 
+                            display_cols.remove('Tracking Number')
+                            
                         edited_history = st.data_editor(
-                            history_df, 
+                            history_df[display_cols], 
                             hide_index=True, 
                             width="stretch",
-                            column_config={"Restock": st.column_config.CheckboxColumn(required=True)}
+                            column_config={
+                                "Restock": st.column_config.CheckboxColumn(required=True),
+                                "Tracking Link": st.column_config.LinkColumn("Tracking Number", display_text="Track", help="Click to search Tracking Number"),
+                                "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY"),
+                                "Sales Price": st.column_config.NumberColumn(format="$%.2f"),
+                                "Cost": st.column_config.NumberColumn(format="$%.2f")
+                            }
                         )
                         
                         if st.button("🔄 Restock Selected Items"):
@@ -1042,78 +1297,83 @@ else:
             target_company = st.selectbox("Select Client View for Audit:", company_list)
         
         st.title(f"🔍 Audit Management: {target_company}")
-        st.info("Select items to request an audit. These items will remain in your inventory.")
+        st.info("Pending Audit Requests will appear here. Mark them as completed when verified.")
         
-        df = load_data(MASTER_INVENTORY_FILE)
-        
-        if 'owner' in df.columns:
-            # Filter by Company
-            if target_company == "All Companies":
-                user_df = df.copy()
-                user_df.rename(columns={'owner': 'Company'}, inplace=True)
-            else:
-                user_df = df[df['owner'] == target_company].drop(columns=['owner'])
-            
-            if not user_df.empty:
-                # Search Bar for focusing audit
-                search_term = st.text_input("🔍 Search items to audit...", placeholder="Serial Number, Model, PO...")
-                if search_term:
-                    mask = user_df.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)
-                    user_df = user_df[mask]
-
-                # Selection Table
-                st.caption("Select items for audit:")
-                if "Select" not in user_df.columns:
-                    user_df.insert(0, "Select", False)
-                
-                edited_audit = st.data_editor(
-                    user_df,
-                    hide_index=True,
-                    width="stretch",
-                    column_config={
-                        "Select": st.column_config.CheckboxColumn(required=True),
-                        "Sales Price": st.column_config.NumberColumn(format="$%.2f")
-                    }
-                )
-                
-                selected_items = edited_audit[edited_audit.Select]
-                
-                if not selected_items.empty:
-                    st.markdown("---")
-                    st.subheader("Audit Details")
-                    audit_comment = st.text_area("What is the reason for this audit request?", placeholder="Enter details here...")
-                    
-                    if st.button(f"🚩 Submit Audit Request for {len(selected_items)} Item(s)", type="primary"):
-                        if not audit_comment.strip():
-                            st.warning("Please provide a comment for the audit request.")
-                        else:
-                            requester_name = st.session_state.get('name', st.session_state['username'])
-                            process_audit_request(selected_items, requester_name, target_company, audit_comment)
-                            st.balloons()
-                            st.success("✅ Audit request submitted successfully! Items remain in your inventory search.")
-                            st.rerun()
-            else:
-                st.warning(f"No inventory records found for **{target_company}**.")
-        else:
-            st.info("Master Inventory Database is empty.")
-            
-        st.divider()
-        st.subheader("📋 Audit History")
         audit_history_df = load_data(AUDIT_LOG_FILE)
         
         if audit_history_df.empty:
-            st.info("No audit requests logged yet.")
+            st.info("No audit requests have been made yet.")
         else:
-            if not is_global_admin():
-                # Filter for own company
-                display_history = audit_history_df[audit_history_df['Company'] == st.session_state['company']]
-            else:
-                display_history = audit_history_df
+            # Add Status if missing from legacy files
+            if 'Status' not in audit_history_df.columns:
+                audit_history_df['Status'] = 'Pending'
                 
-            if display_history.empty:
-                st.info("No audit history for this company.")
+            # Filter by company if needed
+            if target_company != "All Companies":
+                display_df = audit_history_df[audit_history_df['Company'] == target_company]
             else:
-                st.dataframe(display_history.sort_values('Request Time', ascending=False), hide_index=True, width="stretch")
+                display_df = audit_history_df
+                
+            if display_df.empty:
+                st.info(f"No audit requests found for {target_company}.")
+            else:
+                # Top Table: Pending Items
+                st.subheader("Pending Audit Requests")
+                pending_df = display_df[display_df['Status'] == 'Pending'].copy()
+                
+                if pending_df.empty:
+                    st.success("All caught up! No pending audits.")
+                else:
+                    pending_df.insert(0, "Mark Complete", False)
+                    edited_pending = st.data_editor(
+                        pending_df,
+                        hide_index=True,
+                        width="stretch",
+                        column_config={
+                            "Mark Complete": st.column_config.CheckboxColumn(required=True),
+                            "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY")
+                        }
+                    )
+                    
+                    to_complete = edited_pending[edited_pending['Mark Complete']]
+                    
+                    if not to_complete.empty:
+                        st.markdown("---")
+                        st.subheader("Completion Details")
+                        completion_comment = st.text_area("Audit Completion Notes (Optional)", placeholder="Enter any notes or findings regarding this completed audit...")
+                        
+                        if st.button("✅ Confirm Completed Audits"):
+                            completed_count = 0
+                            # Update statuses based on index matching
+                            for idx, row in to_complete.iterrows():
+                                if idx in audit_history_df.index:
+                                    audit_history_df.loc[idx, 'Status'] = 'Completed'
+                                    audit_history_df.loc[idx, 'Processed By'] = st.session_state.get('name', st.session_state['username'])
+                                    if completion_comment.strip():
+                                        audit_history_df.loc[idx, 'Completion Notes'] = completion_comment.strip()
+                                    completed_count += 1
+                                    
+                            save_data(audit_history_df, AUDIT_LOG_FILE)
+                            st.balloons()
+                            st.success(f"✅ Marked {completed_count} items as completed!")
+                            st.rerun()
+
+                st.divider()
+                
+                # Bottom Table: Completed Items
+                st.subheader("Completed Audit History")
+                completed_df = display_df[display_df['Status'] == 'Completed'].copy()
+                if completed_df.empty:
+                    st.info("No completed audits yet.")
+                else:
+                    st.dataframe(
+                        completed_df.sort_values('Request Time', ascending=False), 
+                        hide_index=True, 
+                        width="stretch",
+                        column_config={
+                            "Request Time": st.column_config.DatetimeColumn("Request Time", format="MM-DD-YYYY")
+                        }
+                    )
 
 
     # --- PAGE 4: INVENTORY MANAGEMENT (SUPER ADMIN ONLY) ---
@@ -1126,39 +1386,185 @@ else:
         
         with st.form("upload_form"):
             target_client_co = st.selectbox("Select Target Client (Company)", client_companies)
+            
+            upload_mode = st.radio("Upload Mode:", 
+                                   ["Replace Existing Inventory (Deletes old records for this client)", 
+                                    "Append to Existing Inventory (Keeps old records for this client)"],
+                                   index=0)
+            
             uploaded_file = st.file_uploader("Upload Master Excel File", type=['xlsx'])
             submitted = st.form_submit_button("Start Processing")
             
             if submitted and uploaded_file:
                 with st.spinner("Processing Excel..."):
                     try:
-                        xls = pd.ExcelFile(uploaded_file)
-                        inv_s = next((s for s in xls.sheet_names if "inv" in s.lower() or "hand" in s.lower()), None)
-                        if not inv_s: inv_s = xls.sheet_names[0]
+                        xls = pd.ExcelFile(uploaded_file, engine='openpyxl')
                         
-                        df_inv = pd.read_excel(uploaded_file, sheet_name=inv_s)
-                        if 'Status' not in df_inv.columns: df_inv['Status'] = 'ON HAND'
-                        frames = [df_inv]
+                        # 1. Base Inventory (Total Units Received)
+                        base_sheet = next((s for s in xls.sheet_names if "recv" in s.lower() or "received" in s.lower() or "inv" in s.lower()), None)
+                        if not base_sheet: base_sheet = xls.sheet_names[0]
+                        df_base = pd.read_excel(xls, sheet_name=base_sheet).dropna(how='all')
+                        st.info(f"Loaded {len(df_base)} total baseline records.")
+                        if 'Status' not in df_base.columns: df_base['Status'] = 'ON HAND'
+                        df_base['owner'] = target_client_co
                         
-                        sold_s = next((s for s in xls.sheet_names if "sold" in s.lower()), None)
-                        if sold_s:
-                            df_sold = pd.read_excel(uploaded_file, sheet_name=sold_s)
-                            if 'Status' not in df_sold.columns: df_sold['Status'] = 'SOLD'
-                            frames.append(df_sold)
-                        
-                        new_data = pd.concat(frames, ignore_index=True)
-                        new_data['owner'] = target_client_co 
+                        # 2. Sold Inventory (Units Sold)
+                        sold_sheet = next((s for s in xls.sheet_names if "sold" in s.lower()), None)
+                        if sold_sheet:
+                            df_sold = pd.read_excel(xls, sheet_name=sold_sheet).dropna(how='all')
+                            st.info(f"Matched {len(df_sold)} sold records.")
+                            if 'Sales Price' not in df_base.columns: df_base['Sales Price'] = 0
+                            if 'Cost' not in df_base.columns: df_base['Cost'] = 0
+
+                            # Match by Internal Serial
+                            if 'Internal Serial' in df_sold.columns and 'Internal Serial' in df_base.columns:
+                                sold_int = df_sold.dropna(subset=['Internal Serial'])
+                                if not sold_int.empty:
+                                    sold_serials = sold_int['Internal Serial'].tolist()
+                                    df_base.loc[df_base['Internal Serial'].isin(sold_serials), 'Status'] = 'SOLD'
+                                    
+                                    unique_int = sold_int.drop_duplicates(subset=['Internal Serial'])
+                                    if 'Sales Price' in sold_int.columns:
+                                        sales_map = dict(zip(unique_int['Internal Serial'], unique_int['Sales Price']))
+                                        df_base['Sales Price'] = df_base['Internal Serial'].map(sales_map).fillna(df_base['Sales Price'])
+                                    
+                                    if 'Partner Allocation - Cost' in sold_int.columns:
+                                        cost_map = dict(zip(unique_int['Internal Serial'], unique_int['Partner Allocation - Cost']))
+                                        mapped_costs = df_base['Internal Serial'].map(cost_map)
+                                        df_base.loc[df_base['Status'] == 'SOLD', 'Cost'] = mapped_costs.fillna(df_base['Cost'])
+
+                            # Match by Mnfr Serial (for records missing Internal Serial)
+                            if 'Mnfr Serial' in df_sold.columns and 'Mnfr Serial' in df_base.columns:
+                                sold_mnf = df_sold.dropna(subset=['Mnfr Serial'])
+                                if not sold_mnf.empty:
+                                    mnf_serials = sold_mnf['Mnfr Serial'].tolist()
+                                    df_base.loc[df_base['Mnfr Serial'].isin(mnf_serials), 'Status'] = 'SOLD'
+                                    
+                                    unique_mnf = sold_mnf.drop_duplicates(subset=['Mnfr Serial'])
+                                    if 'Sales Price' in sold_mnf.columns:
+                                        sales_map_m = dict(zip(unique_mnf['Mnfr Serial'], unique_mnf['Sales Price']))
+                                        df_base['Sales Price'] = df_base['Mnfr Serial'].map(sales_map_m).fillna(df_base['Sales Price'])
+                                    
+                                    if 'Partner Allocation - Cost' in sold_mnf.columns:
+                                        cost_map_m = dict(zip(unique_mnf['Mnfr Serial'], unique_mnf['Partner Allocation - Cost']))
+                                        mapped_costs_m = df_base['Mnfr Serial'].map(cost_map_m)
+                                        df_base.loc[df_base['Mnfr Serial'].isin(mnf_serials), 'Cost'] = mapped_costs_m.fillna(df_base['Cost'])
+
+                            # Match by Part# (Tertiary fallback for completely missing serials)
+                            if 'Part#' in df_sold.columns and 'Part#' in df_base.columns:
+                                sold_prt = df_sold.dropna(subset=['Part#'])
+                                if not sold_prt.empty:
+                                    prt_serials = sold_prt['Part#'].tolist()
+                                    df_base.loc[(df_base['Part#'].isin(prt_serials)) & (df_base['Status'] != 'SOLD'), 'Status'] = 'SOLD'
+                                    
+                                    unique_prt = sold_prt.drop_duplicates(subset=['Part#'])
+                                    if 'Sales Price' in sold_prt.columns:
+                                        sales_map_p = dict(zip(unique_prt['Part#'], unique_prt['Sales Price']))
+                                        df_base['Sales Price'] = df_base['Part#'].map(sales_map_p).fillna(df_base['Sales Price'])
+                                    
+                                    if 'Partner Allocation - Cost' in sold_prt.columns:
+                                        cost_map_p = dict(zip(unique_prt['Part#'], unique_prt['Partner Allocation - Cost']))
+                                        mapped_costs_p = df_base['Part#'].map(cost_map_p)
+                                        df_base.loc[df_base['Part#'].isin(prt_serials), 'Cost'] = mapped_costs_p.fillna(df_base['Cost'])
+
+                        # 3. Returned Inventory (Ciena Requested Units Returned)
+                        return_sheet = next((s for s in xls.sheet_names if "return" in s.lower()), None)
+                        if return_sheet:
+                            df_returned = pd.read_excel(xls, sheet_name=return_sheet).dropna(how='all')
+                            st.info(f"Processing {len(df_returned)} returned records.")
+                            to_remove = pd.DataFrame()
+                            
+                            # Extract Return by Internal Serial
+                            if 'Internal Serial' in df_returned.columns and 'Internal Serial' in df_base.columns:
+                                ret_int = df_returned.dropna(subset=['Internal Serial'])
+                                if not ret_int.empty:
+                                    ret_serials = ret_int['Internal Serial'].tolist()
+                                    to_rem_int = df_base[df_base['Internal Serial'].isin(ret_serials)].copy()
+                                    df_base = df_base[~df_base['Internal Serial'].isin(ret_serials)]
+                                    
+                                    if not to_rem_int.empty:
+                                        unique_ret = ret_int.drop_duplicates(subset=['Internal Serial'])
+                                        if 'Tracking Number' in df_returned.columns:
+                                            trk_map = dict(zip(unique_ret['Internal Serial'], unique_ret['Tracking Number']))
+                                            to_rem_int['Tracking Number'] = to_rem_int['Internal Serial'].map(trk_map)
+                                        if 'Location - Bin' in df_returned.columns:
+                                            bin_map = dict(zip(unique_ret['Internal Serial'], unique_ret['Location - Bin']))
+                                            to_rem_int['Location - Bin'] = to_rem_int['Internal Serial'].map(bin_map)
+                                        if 'Location - Warehouse' in df_returned.columns:
+                                            wh_map = dict(zip(unique_ret['Internal Serial'], unique_ret['Location - Warehouse']))
+                                            to_rem_int['Location - Warehouse'] = to_rem_int['Internal Serial'].map(wh_map)
+                                        to_remove = pd.concat([to_remove, to_rem_int])
+
+                            # Extract Return by Mnfr Serial
+                            if 'Mnfr Serial' in df_returned.columns and 'Mnfr Serial' in df_base.columns:
+                                ret_mnf = df_returned.dropna(subset=['Mnfr Serial'])
+                                if not ret_mnf.empty:
+                                    mnf_serials = ret_mnf['Mnfr Serial'].tolist()
+                                    to_rem_mnf = df_base[df_base['Mnfr Serial'].isin(mnf_serials)].copy()
+                                    df_base = df_base[~df_base['Mnfr Serial'].isin(mnf_serials)]
+                                    
+                                    if not to_rem_mnf.empty:
+                                        unique_ret_m = ret_mnf.drop_duplicates(subset=['Mnfr Serial'])
+                                        if 'Tracking Number' in df_returned.columns:
+                                            trk_map_m = dict(zip(unique_ret_m['Mnfr Serial'], unique_ret_m['Tracking Number']))
+                                            to_rem_mnf['Tracking Number'] = to_rem_mnf['Mnfr Serial'].map(trk_map_m)
+                                        if 'Location - Bin' in df_returned.columns:
+                                            bin_map_m = dict(zip(unique_ret_m['Mnfr Serial'], unique_ret_m['Location - Bin']))
+                                            to_rem_mnf['Location - Bin'] = to_rem_mnf['Mnfr Serial'].map(bin_map_m)
+                                        if 'Location - Warehouse' in df_returned.columns:
+                                            wh_map_m = dict(zip(unique_ret_m['Mnfr Serial'], unique_ret_m['Location - Warehouse']))
+                                            to_rem_mnf['Location - Warehouse'] = to_rem_mnf['Mnfr Serial'].map(wh_map_m)
+                                        to_remove = pd.concat([to_remove, to_rem_mnf])
+                            
+                            # Extract Return by Part#
+                            if 'Part#' in df_returned.columns and 'Part#' in df_base.columns:
+                                ret_prt = df_returned.dropna(subset=['Part#'])
+                                if not ret_prt.empty:
+                                    prt_serials = ret_prt['Part#'].tolist()
+                                    # Careful here: Part# is rarely totally unique to one row. 
+                                    to_rem_prt = df_base[df_base['Part#'].isin(prt_serials)].copy()
+                                    df_base = df_base[~df_base['Part#'].isin(prt_serials)]
+                                    
+                                    if not to_rem_prt.empty:
+                                        unique_ret_p = ret_prt.drop_duplicates(subset=['Part#'])
+                                        if 'Tracking Number' in df_returned.columns:
+                                            trk_map_p = dict(zip(unique_ret_p['Part#'], unique_ret_p['Tracking Number']))
+                                            to_rem_prt['Tracking Number'] = to_rem_prt['Part#'].map(trk_map_p)
+                                        if 'Location - Bin' in df_returned.columns:
+                                            bin_map_p = dict(zip(unique_ret_p['Part#'], unique_ret_p['Location - Bin']))
+                                            to_rem_prt['Location - Bin'] = to_rem_prt['Part#'].map(bin_map_p)
+                                        if 'Location - Warehouse' in df_returned.columns:
+                                            wh_map_p = dict(zip(unique_ret_p['Part#'], unique_ret_p['Location - Warehouse']))
+                                            to_rem_prt['Location - Warehouse'] = to_rem_prt['Part#'].map(wh_map_p)
+                                        to_remove = pd.concat([to_remove, to_rem_prt])
+
+                            # Process final return log appends
+                            if not to_remove.empty:
+                                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                to_remove['Status'] = 'Completed'
+                                to_remove['Processed By'] = 'System Upload'
+                                to_remove['Request Time'] = timestamp
+                                to_remove['Requested By'] = 'System'
+                                to_remove['Company'] = target_client_co
+                                
+                                old_log = load_data(RECALL_LOG_FILE)
+                                new_log = pd.concat([old_log, to_remove], ignore_index=True)
+                                save_data(new_log, RECALL_LOG_FILE)
                         
                         master_df = load_data(MASTER_INVENTORY_FILE)
                         if not master_df.empty and 'owner' in master_df.columns:
-                            master_df = master_df[master_df['owner'] != target_client_co]
+                            if "Replace" in upload_mode:
+                                master_df = master_df[master_df['owner'] != target_client_co]
                         
-                        final_df = pd.concat([master_df, new_data], ignore_index=True)
+                        final_df = pd.concat([master_df, df_base], ignore_index=True)
                         save_data(final_df, MASTER_INVENTORY_FILE)
-                        st.success(f"✅ Successfully assigned {len(new_data)} records to {target_client_co}!")
+                        
+                        mode_str = "replaced" if "Replace" in upload_mode else "appended"
+                        st.success(f"✅ Successfully {mode_str} {len(df_base)} active records for {target_client_co}!")
                         
                     except Exception as e:
                         st.error(f"❌ Error processing file: {str(e)}")
+                        st.exception(e)
 
 
     # --- PAGE: COMPANY MANAGEMENT ---
@@ -1244,7 +1650,7 @@ else:
                             c_df, 
                             column_config={
                                 "logo_path": st.column_config.ImageColumn("Logo"),
-                                "created_at": st.column_config.DatetimeColumn("Created At", format="D MMM YYYY, h:mm a"),
+                                "created_at": st.column_config.DatetimeColumn("Created At", format="MM-DD-YYYY"),
                             },
                             use_container_width=True, 
                             hide_index=True
@@ -1260,7 +1666,16 @@ else:
         users_df = load_data(USER_DB_FILE)
         
         # Tabbed interface for better organization
-        tab1, tab2, tab3 = st.tabs(["➕ Create User", "✏️ Edit/Reset User", "📋 Existing Users"])
+        tabs = ["➕ Create User", "✏️ Edit/Reset User", "📋 Existing Users"]
+        if is_global_admin():
+            tabs.append("🛡️ Super User Console")
+            
+        tab_list = st.tabs(tabs)
+        
+        if is_global_admin() and len(tab_list) == 4:
+            tab1, tab2, tab3, tab_super = tab_list
+        else:
+            tab1, tab2, tab3 = tab_list
         
         with tab1:
             st.subheader("Create New User")
@@ -1372,7 +1787,14 @@ else:
             if not is_global_admin():
                 viewable_users_list = users_df[users_df['company'] == st.session_state['company']]
                 
-            st.dataframe(viewable_users_list[['username', 'role', 'company', 'email', 'name']], hide_index=True, width="stretch")
+            st.dataframe(
+                viewable_users_list[['username', 'role', 'company', 'email', 'name']], 
+                hide_index=True, 
+                width="stretch",
+                column_config={
+                    "processed_at": st.column_config.DatetimeColumn("Last Processed", format="MM-DD-YYYY")
+                }
+            )
             
             st.markdown("---")
             col_del, _ = st.columns(2)
@@ -1387,6 +1809,50 @@ else:
                         save_data(users_df[users_df['username'] != d_user], USER_DB_FILE)
                         st.success(f"User {d_user} deleted.")
                         st.rerun()
+            
+        if is_global_admin() and len(tab_list) == 4:
+            with tab_super:
+                st.subheader("🛡️ Super User Console")
+                st.info("Directly edit the User Database. Use with caution!")
+                
+                # Fetch all companies for dropdown mapping if needed
+                all_companies_list = get_all_companies()
+                
+                # Use data editor for bulk editing
+                edited_users = st.data_editor(
+                    users_df,
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "role": st.column_config.SelectboxColumn("Role", options=["admin", "manager", "viewer"], required=True),
+                        "company": st.column_config.SelectboxColumn("Company", options=all_companies_list, required=True),
+                        "password": st.column_config.TextColumn("Password", help="Set new password directly"),
+                        "theme": st.column_config.SelectboxColumn("Theme", options=["light", "dark"]),
+                        "processed_at": st.column_config.DatetimeColumn("Last Processed", format="MM-DD-YYYY"),
+                        "created_at": st.column_config.DatetimeColumn("Created At", format="MM-DD-YYYY")
+                    }
+                )
+                
+                if st.button("💾 Overwrite User Database", type="primary"):
+                    st.session_state['confirm_user_overwrite'] = True
+                
+                if st.session_state.get('confirm_user_overwrite'):
+                    st.warning("⚠️ Are you sure? This will replace the ENTIRE users.csv file with the data above.")
+                    cw1, cw2 = st.columns(2)
+                    with cw1:
+                        if st.button("🔥 YES, OVERWRITE DATABASE", key="btn_actual_overwrite"):
+                            try:
+                                save_data(edited_users, USER_DB_FILE)
+                                st.success("✅ User database updated successfully!")
+                                del st.session_state['confirm_user_overwrite']
+                                time.sleep(1)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Save failed: {e}")
+                    with cw2:
+                        if st.button("Cancel Overwrite"):
+                            del st.session_state['confirm_user_overwrite']
+                            st.rerun()
                     
     # --- PAGE 6: ADMIN SETTINGS ---
     elif page == "Settings":
@@ -1412,7 +1878,14 @@ else:
                 # Formatted display
                 c_rule, c_btn = st.columns([3, 1])
                 with c_rule:
-                    st.dataframe(rule_df, hide_index=True, width="stretch")
+                    st.dataframe(
+                        rule_df, 
+                        hide_index=True, 
+                        width="stretch",
+                        column_config={
+                            "created_at": st.column_config.DatetimeColumn("Set On", format="MM-DD-YYYY")
+                        }
+                    )
                 with c_btn:
                     # Simple Delete Logic
                     idx_to_del = st.number_input("Rule Index to Delete", min_value=0, max_value=len(rules)-1, step=1, label_visibility="collapsed")
@@ -1515,20 +1988,128 @@ else:
                 csv_files = glob.glob(os.path.join(data_dir, "*.csv"))
                 
                 if csv_files:
-                    st.write("### Download Live Data")
+                    st.write("### Download & Delete Live Data")
                     st.caption(f"Found {len(csv_files)} .csv files in {data_dir}")
                     for csv_path in csv_files:
                         file_name = os.path.basename(csv_path)
-                        with open(csv_path, "rb") as f:
-                            st.download_button(
-                                label=f"Download {file_name}",
-                                data=f,
-                                file_name=file_name,
-                                mime="text/csv",
-                                key=f"dl_{file_name}"
-                            )
+                        c_dl, c_del = st.columns([3, 1])
+                        with c_dl:
+                            with open(csv_path, "rb") as f:
+                                st.download_button(
+                                    label=f"Download {file_name}",
+                                    data=f,
+                                    file_name=file_name,
+                                    mime="text/csv",
+                                    key=f"dl_{file_name}",
+                                    use_container_width=True
+                                )
+                        with c_del:
+                            if st.button(f"🗑️ Delete", key=f"del_btn_{file_name}", use_container_width=True):
+                                st.session_state[f'confirm_del_{file_name}'] = True
+                        
+                        if st.session_state.get(f'confirm_del_{file_name}'):
+                            st.warning(f"⚠️ Confirm deletion of `{file_name}`?")
+                            col_c1, col_c2 = st.columns(2)
+                            with col_c1:
+                                if st.button(f"Confirm Delete: {file_name}", key=f"conf_del_{file_name}"):
+                                    os.remove(csv_path)
+                                    st.success(f"Deleted {file_name}")
+                                    del st.session_state[f'confirm_del_{file_name}']
+                                    time.sleep(1)
+                                    st.rerun()
+                            with col_c2:
+                                if st.button("Cancel", key=f"canc_del_{file_name}"):
+                                    del st.session_state[f'confirm_del_{file_name}']
+                                    st.rerun()
                 else:
                     st.warning("No CSV files found in data directory.")
+
+                st.divider()
+                st.write("### 🧹 Wipe Inventory Data")
+                st.info("Erase data for a specific company OR clear entire files for a system reset.")
+                
+                # Dynamic aggregation of all existing companies/owners across all files
+                all_co_found = set(get_all_companies())
+                for label, f_path in {
+                    "Users": USER_DB_FILE, 
+                    "Inventory": MASTER_INVENTORY_FILE, 
+                    "Recall": RECALL_LOG_FILE, 
+                    "Audit": AUDIT_LOG_FILE
+                }.items():
+                    if os.path.exists(f_path):
+                        try:
+                            # Use low_memory=False to avoid DtypeWarning on large loads
+                            tmp_df = pd.read_csv(f_path, low_memory=False)
+                            c_col = next((c for c in tmp_df.columns if c.lower() in ['company', 'owner']), None)
+                            if c_col:
+                                all_co_found.update([str(x) for x in tmp_df[c_col].unique() if pd.notna(x) and x != ''])
+                        except:
+                            pass
+                
+                wipe_options = ["--- CLEAR ALL RECORDS ---"] + sorted(list(all_co_found))
+                wipe_co = st.selectbox("Select Target to Wipe", wipe_options, key="wipe_co_sel")
+                
+                files_to_wipe_opts = ["Master Inventory", "Recall Log", "Audit Log"]
+                files_to_wipe = st.multiselect(
+                    "Select Files to Clean",
+                    files_to_wipe_opts,
+                    default=["Master Inventory"]
+                )
+                
+                if st.button("🔥 Execute Inventory Data Action"):
+                    if not files_to_wipe:
+                        st.warning("Please select at least one file to wipe.")
+                    elif wipe_co == "WestWorld":
+                        st.error("⛔ Cannot wipe the master company (WestWorld).")
+                    else:
+                        st.session_state['confirm_wipe'] = True
+
+                if st.session_state.get('confirm_wipe'):
+                    target_display = "ALL DATA" if wipe_co == "--- CLEAR ALL RECORDS ---" else f"records for {wipe_co}"
+                    st.warning(f"⚠️ DANGER: This will delete {target_display} in: {', '.join(files_to_wipe)}")
+                    col_w1, col_w2 = st.columns(2)
+                    with col_w1:
+                        if st.button(f"✅ Confirm Action", key="wipe_btn_actual"):
+                            try:
+                                file_map = {
+                                    "Master Inventory": MASTER_INVENTORY_FILE,
+                                    "Recall Log": RECALL_LOG_FILE,
+                                    "Audit Log": AUDIT_LOG_FILE
+                                }
+                                
+                                for label in files_to_wipe:
+                                    f_path = file_map[label]
+                                    if os.path.exists(f_path):
+                                        if wipe_co == "--- CLEAR ALL RECORDS ---":
+                                            # Truncate to just headers
+                                            df_existing = pd.read_csv(f_path, nrows=0)
+                                            df_existing.to_csv(f_path, index=False)
+                                            st.write(f"Done: Cleared all matching records in {label}.")
+                                        else:
+                                            # Surgical removal
+                                            df_to_clean = pd.read_csv(f_path, low_memory=False)
+                                            c_col = next((c for c in df_to_clean.columns if c.lower() in ['company', 'owner']), None)
+                                            if c_col:
+                                                original_count = len(df_to_clean)
+                                                # Convert to string for comparison
+                                                df_to_clean[c_col] = df_to_clean[c_col].astype(str)
+                                                df_to_clean = df_to_clean[df_to_clean[c_col] != str(wipe_co)]
+                                                removed = original_count - len(df_to_clean)
+                                                df_to_clean.to_csv(f_path, index=False)
+                                                st.write(f"Done: Removed {removed} rows from {label}.")
+                                            else:
+                                                st.error(f"Could not find company column in {label}. Skipping.")
+                                
+                                st.success("Data action completed successfully.")
+                                del st.session_state['confirm_wipe']
+                                time.sleep(1)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Operation failed: {e}")
+                    with col_w2:
+                        if st.button("Cancel Action"):
+                            del st.session_state['confirm_wipe']
+                            st.rerun()
                     
                 st.divider()
                 st.write("### Upload / Overwrite Data")
