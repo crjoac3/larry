@@ -1,0 +1,10 @@
+.git
+.git/
+.github
+.gitignore
+larry_data
+larry_data/
+*.zip
+*.log
+__pycache__/
+*.pyc

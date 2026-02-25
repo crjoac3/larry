@@ -1960,11 +1960,16 @@ else:
                         # Fix for Docker filesystem boundaries dropping in child Python processes
                         os.environ["GIT_DISCOVERY_ACROSS_FILESYSTEM"] = "1"
                         
+                        git_dir = os.path.join(repo_dir, ".git")
+                        # Wipe corrupted .git folders if they exist but lack HEAD
+                        if os.path.exists(git_dir) and not os.path.exists(os.path.join(git_dir, "HEAD")):
+                            shutil.rmtree(git_dir)
+
                         # Fix for "dubious ownership" in Docker environments using wildcard
                         subprocess.run(["git", "config", "--global", "--add", "safe.directory", "*"], cwd=repo_dir, check=True)
                         
                         # Initialize if not already a repo (e.g. from zip)
-                        if not os.path.exists(os.path.join(repo_dir, ".git")):
+                        if not os.path.exists(git_dir):
                             subprocess.run(["git", "init"], cwd=repo_dir, check=True)
                             subprocess.run(["git", "remote", "add", "origin", "https://github.com/crjoac3/larry.git"], cwd=repo_dir, check=True)
 

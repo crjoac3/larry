@@ -9,8 +9,15 @@ cd /app || echo "⚠️ Could not cd to /app, proceeding anyway..."
 
 if [ "$GIT_UPDATE" = "true" ]; then
     echo "🔄 Checking for updates from GitHub..."
+    
+    # 🚨 Failsafe: If .git exists but is corrupted/empty (e.g. copied from host), wipe it.
+    if [ -d ".git" ] && [ ! -f ".git/HEAD" ]; then
+        echo "⚠️ Corrupted or empty .git directory detected. Wiping for clean initialization..."
+        rm -rf .git
+    fi
+
     if [ ! -d ".git" ]; then
-        echo "⚠️ No .git directory found. Auto-initializing..."
+        echo "⚠️ No valid .git directory found. Auto-initializing..."
         git init
         git remote add origin https://github.com/crjoac3/larry.git || true
     fi
