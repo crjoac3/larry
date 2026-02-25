@@ -10,6 +10,10 @@ cd /app || echo "⚠️ Could not cd to /app, proceeding anyway..."
 # Fix for "dubious ownership" error in Docker (Exit 128)
 git config --global --add safe.directory /app
 
+# Fix for "fatal: not a git repository... Stopping at filesystem boundary"
+# This occurs because Docker mounts ./ as a new filesystem volume at /app
+export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+
 if [ "$GIT_UPDATE" = "true" ]; then
     echo "🔄 Checking for updates from GitHub..."
     if [ ! -d ".git" ]; then
