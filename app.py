@@ -1957,8 +1957,11 @@ else:
                         
                         # 1. Force Update (Fetch + Reset Hard)
                         repo_dir = "/app"
-                        # Fix for "dubious ownership" in Docker environments
-                        subprocess.run(["git", "config", "--global", "--add", "safe.directory", repo_dir], check=True)
+                        # Fix for Docker filesystem boundaries dropping in child Python processes
+                        os.environ["GIT_DISCOVERY_ACROSS_FILESYSTEM"] = "1"
+                        
+                        # Fix for "dubious ownership" in Docker environments using wildcard
+                        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "*"], cwd=repo_dir, check=True)
                         
                         # Initialize if not already a repo (e.g. from zip)
                         if not os.path.exists(os.path.join(repo_dir, ".git")):
