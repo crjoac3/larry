@@ -8,16 +8,19 @@ echo "🐳 Starting Entrypoint Script..."
 git config --global --add safe.directory /app
 
 if [ "$GIT_UPDATE" = "true" ]; then
-    echo "🔄 Updating code from GitHub..."
-    if [ -d ".git" ]; then
-        git fetch origin
-        git reset --hard origin/main || echo "⚠️ Git update failed."
-    else
+    echo "🔄 Checking for updates from GitHub..."
+    if [ ! -d ".git" ]; then
         echo "⚠️ No .git directory found. Auto-initializing..."
         git init
-        git remote add origin https://github.com/crjoac3/larry.git
-        git fetch origin
-        git reset --hard origin/main || echo "⚠️ Initial git sync failed."
+        git remote add origin https://github.com/crjoac3/larry.git || true
+    fi
+    
+    # Try to update, but don't fail the whole script if it fails (e.g. no internet)
+    if git fetch origin; then
+        git reset --hard origin/main
+        echo "✅ Code updated to latest origin/main."
+    else
+        echo "⚠️ Git update failed. Proceeding with existing code."
     fi
 else
     echo "⏭️ GIT_UPDATE is not 'true'. Skipping GitHub sync."

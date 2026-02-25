@@ -1949,9 +1949,17 @@ else:
                         # Fix for "dubious ownership" in Docker environments
                         subprocess.run(["git", "config", "--global", "--add", "safe.directory", "/app"], check=True)
                         
+                        # Initialize if not already a repo (e.g. from zip)
+                        if not os.path.exists(".git"):
+                            subprocess.run(["git", "init"], check=True)
+                            subprocess.run(["git", "remote", "add", "origin", "https://github.com/crjoac3/larry.git"], check=True)
+
                         # This avoids "local changes" errors by discarding them.
-                        subprocess.run(["git", "fetch", "origin"], check=True)
-                        result = subprocess.run(["git", "reset", "--hard", "origin/main"], capture_output=True, text=True)
+                        fetch_res = subprocess.run(["git", "fetch", "origin"], capture_output=True, text=True)
+                        if fetch_res.returncode != 0:
+                            st.error(f"Git Fetch Failed:\n{fetch_res.stderr}")
+                        else:
+                            result = subprocess.run(["git", "reset", "--hard", "origin/main"], capture_output=True, text=True)
                         
                         if result.returncode == 0:
                             st.success(f"Update Successful (Reset to origin/main):\n{result.stdout}")
