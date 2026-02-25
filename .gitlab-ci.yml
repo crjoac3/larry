@@ -1,0 +1,14 @@
+stages:
+  - deploy
+
+deploy_to_production:
+  stage: deploy
+  script:
+    - cd /srv/inventory
+    - git fetch origin
+    - git reset --hard origin/main
+    - echo "Deployment complete. Docker container should automatically hot-reload the updated files."
+  only:
+    - main
+  tags:
+    - shell  # Ensure your runner is assigned specifically to use a shell executor on the host machine.

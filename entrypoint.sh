@@ -3,39 +3,8 @@ set -e
 
 echo "🐳 Starting Entrypoint Script..."
 
-# 1. Update Code from GitHub (Auto-init if missing)
 # Explicitly move to the application code directory
 cd /app || echo "⚠️ Could not cd to /app, proceeding anyway..."
-
-if [ "$GIT_UPDATE" = "true" ]; then
-    echo "🔄 Checking for updates from GitHub..."
-    
-    # 🚨 Failsafe: If .git exists but is corrupted/empty (e.g. copied from host), wipe it.
-    if [ -d ".git" ] && [ ! -f ".git/HEAD" ]; then
-        echo "⚠️ Corrupted or empty .git directory detected. Wiping for clean initialization..."
-        rm -rf .git
-    fi
-
-    if [ ! -d ".git" ]; then
-        echo "⚠️ No valid .git directory found. Auto-initializing..."
-        git init
-        git remote add origin https://github.com/crjoac3/larry.git || true
-    fi
-    
-    # Fix for "dubious ownership" and filesystem boundary errors in Docker
-    # Moved down here so it only runs AFTER we guarantee a .git dir exists
-    git config --global --add safe.directory '*'
-    
-    # Try to update, but don't fail the whole script if it fails (e.g. no internet)
-    if git fetch origin; then
-        git reset --hard origin/main
-        echo "✅ Code updated to latest origin/main."
-    else
-        echo "⚠️ Git update failed. Proceeding with existing code."
-    fi
-else
-    echo "⏭️ GIT_UPDATE is not 'true'. Skipping GitHub sync."
-fi
 
 # 2. Data Migration / Initialization
 # Define persistent data directory from Env Var or default to /data

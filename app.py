@@ -1942,71 +1942,7 @@ else:
             st.divider()
             st.subheader("👑 Super Admin: System & Data")
             
-            # 1. APPLICATION UPDATE
-            with st.expander("Update Application"):
-                st.warning("This will pull the latest code from GitHub and restart the app.")
-                
-                col_reset1, col_reset2 = st.columns(2)
-                with col_reset1: reset_users = st.checkbox("Dangerous: Reset 'users.csv' from Repo (Wipes live users)")
-                with col_reset2: reset_companies = st.checkbox("Dangerous: Reset 'companies.csv' from Repo (Wipes live data)")
-                
-                if st.button("🔄 Force Update from GitHub"):
-                    try:
-                        import subprocess
-                        import shutil
-                        
-                        # 1. Force Update (Fetch + Reset Hard)
-                        repo_dir = "/app"
-                        # Fix for Docker filesystem boundaries dropping in child Python processes
-                        os.environ["GIT_DISCOVERY_ACROSS_FILESYSTEM"] = "1"
-                        
-                        git_dir = os.path.join(repo_dir, ".git")
-                        # Wipe corrupted .git folders if they exist but lack HEAD
-                        if os.path.exists(git_dir) and not os.path.exists(os.path.join(git_dir, "HEAD")):
-                            shutil.rmtree(git_dir)
-
-                        # Fix for "dubious ownership" in Docker environments using wildcard
-                        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "*"], cwd=repo_dir, check=True)
-                        
-                        # Initialize if not already a repo (e.g. from zip)
-                        if not os.path.exists(git_dir):
-                            subprocess.run(["git", "init"], cwd=repo_dir, check=True)
-                            subprocess.run(["git", "remote", "add", "origin", "https://github.com/crjoac3/larry.git"], cwd=repo_dir, check=True)
-
-                        # This avoids "local changes" errors by discarding them.
-                        fetch_res = subprocess.run(["git", "fetch", "origin"], cwd=repo_dir, capture_output=True, text=True)
-                        if fetch_res.returncode != 0:
-                            st.error(f"Git Fetch Failed:\n{fetch_res.stderr}")
-                        else:
-                            result = subprocess.run(["git", "reset", "--hard", "origin/main"], cwd=repo_dir, capture_output=True, text=True)
-                            
-                            if result.returncode == 0:
-                                st.success(f"Update Successful (Reset to origin/main):\n{result.stdout}")
-                                
-                                # 2. Selective Data Reset
-                            def copy_from_repo(filename, target_path):
-                                if os.path.exists(filename):
-                                    shutil.copy(filename, target_path)
-                                    return True
-                                return False
-
-                            if reset_users:
-                                if copy_from_repo('users.csv', USER_DB_FILE):
-                                    st.warning(f"users.csv reset to default from repo -> {USER_DB_FILE}")
-                                    
-                            if reset_companies:
-                                if copy_from_repo('companies.csv', COMPANIES_FILE):
-                                    st.warning(f"companies.csv reset to default from repo -> {COMPANIES_FILE}")
-
-                            if result.returncode == 0:
-                                st.success("Update successful. Reloading interface...")
-                                st.rerun()
-                            else:
-                                st.error(f"Git Pull Failed:\n{result.stderr}")
-                    except Exception as e:
-                        st.error(f"Update failed: {e}")
-
-            # 2. DATA FILE MANAGEMENT
+            # DATA FILE MANAGEMENT
             with st.expander("Data File Management"):
                 st.info("Manage CSV files currently on the server (Live Data).")
                 

@@ -8,7 +8,7 @@ services:
     volumes:
       # Persistent Data Volume
       - larry_data:/data
-      # Mount the application source code so in-container git pulls are persistent
+      # Mount local directory to container to allow GitLab CI to update files on the host and trigger Streamlit hot-reloading
       - ./:/app
     environment:
       - DATA_VOLUME=/data
