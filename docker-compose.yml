@@ -5,13 +5,14 @@ services:
     build: .
     container_name: larry_web
     restart: always
-    ports:
-      - "8501:8501"
     volumes:
-      # Local Dev Binding - Mount root to /app to hot-reload code
-      - ./:/app
-      # Local Dev Binding - Mount root to /data to sync local CSVs directly
-      - ./:/data
+      # Persistent Data Volume
+      - larry_data:/data
+      # Mount the .git directory so the container can pull updates
+      # (Optional: remove this if you bake the repo into the image and don't want runtime pulls)
+      # But for "auto-update on restart", we need the .git context or we clone fresh.
+      # Strategy: We assume the image is built FROM the repo, but to pull new changes
+      # to the running container's code (which is ephemeral), we rely on the entrypoint 'git pull'.
     environment:
       - DATA_VOLUME=/data
       - USER_DB_FILE=/data/users.csv
@@ -21,8 +22,27 @@ services:
       - AUDIT_LOG_FILE=/data/audit_requests_log.csv
       - SETTINGS_FILE=/data/settings.json
       - LOGO_FILE=/data/logo.jpg
-      # SendGrid keys
+      # Add your SendGrid keys here or use a .env file
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
       - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
-      # Git Auto-Update (Set to 'true' for production, 'false' for local dev)
-      - GIT_UPDATE=false
+      - GIT_UPDATE=true
+
+    networks:
+      - proxy-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ww_portal.rule=Host(`portal.westworldtelecom.com`)"
+      - "traefik.http.routers.ww_portal.entrypoints=websecure"
+      - "traefik.http.routers.ww_portal.tls=true"
+      - "traefik.http.routers.ww_portal.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ww_portal.loadbalancer.server.port=8501"
+      - "traefik.docker.network=proxy-net"
+    restart: unless-stopped
+
+networks:
+  proxy-net:
+    external: true
+
+
+volumes:
+  larry_data:
