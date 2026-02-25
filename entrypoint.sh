@@ -7,8 +7,8 @@ echo "🐳 Starting Entrypoint Script..."
 # Explicitly move to the application code directory
 cd /app || echo "⚠️ Could not cd to /app, proceeding anyway..."
 
-# Fix for "dubious ownership" error in Docker (Exit 128)
-git config --global --add safe.directory /app
+# Fix for "dubious ownership" and filesystem boundary errors in Docker
+git config --global --add safe.directory '*'
 
 # Fix for "fatal: not a git repository... Stopping at filesystem boundary"
 # This occurs because Docker mounts ./ as a new filesystem volume at /app
