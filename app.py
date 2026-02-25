@@ -1946,6 +1946,9 @@ else:
                         import shutil
                         
                         # 1. Force Update (Fetch + Reset Hard)
+                        # Fix for "dubious ownership" in Docker environments
+                        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "/app"], check=True)
+                        
                         # This avoids "local changes" errors by discarding them.
                         subprocess.run(["git", "fetch", "origin"], check=True)
                         result = subprocess.run(["git", "reset", "--hard", "origin/main"], capture_output=True, text=True)
