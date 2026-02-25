@@ -93,8 +93,18 @@ def get_theme_css(theme):
         color: #fafafa !important;
     }
     
+    /* Dataframe / Data Grid Popups (Column Selector, etc.) */
+    div[data-testid="stPopoverBody"] *, 
+    div[role="dialog"] *, 
+    div[role="menu"] *, 
+    div[role="listbox"] *,
+    .dvn-popup * {
+        color: #ffffff !important;
+    }
+    
     /* Header Bar */
     header[data-testid="stHeader"] {
+
         background-color: transparent !important;
     }
     
