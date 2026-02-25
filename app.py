@@ -1956,25 +1956,26 @@ else:
                         import shutil
                         
                         # 1. Force Update (Fetch + Reset Hard)
+                        repo_dir = "/app"
                         # Fix for "dubious ownership" in Docker environments
-                        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "/app"], check=True)
+                        subprocess.run(["git", "config", "--global", "--add", "safe.directory", repo_dir], check=True)
                         
                         # Initialize if not already a repo (e.g. from zip)
-                        if not os.path.exists(".git"):
-                            subprocess.run(["git", "init"], check=True)
-                            subprocess.run(["git", "remote", "add", "origin", "https://github.com/crjoac3/larry.git"], check=True)
+                        if not os.path.exists(os.path.join(repo_dir, ".git")):
+                            subprocess.run(["git", "init"], cwd=repo_dir, check=True)
+                            subprocess.run(["git", "remote", "add", "origin", "https://github.com/crjoac3/larry.git"], cwd=repo_dir, check=True)
 
                         # This avoids "local changes" errors by discarding them.
-                        fetch_res = subprocess.run(["git", "fetch", "origin"], capture_output=True, text=True)
+                        fetch_res = subprocess.run(["git", "fetch", "origin"], cwd=repo_dir, capture_output=True, text=True)
                         if fetch_res.returncode != 0:
                             st.error(f"Git Fetch Failed:\n{fetch_res.stderr}")
                         else:
-                            result = subprocess.run(["git", "reset", "--hard", "origin/main"], capture_output=True, text=True)
-                        
-                        if result.returncode == 0:
-                            st.success(f"Update Successful (Reset to origin/main):\n{result.stdout}")
+                            result = subprocess.run(["git", "reset", "--hard", "origin/main"], cwd=repo_dir, capture_output=True, text=True)
                             
-                            # 2. Selective Data Reset
+                            if result.returncode == 0:
+                                st.success(f"Update Successful (Reset to origin/main):\n{result.stdout}")
+                                
+                                # 2. Selective Data Reset
                             def copy_from_repo(filename, target_path):
                                 if os.path.exists(filename):
                                     shutil.copy(filename, target_path)
