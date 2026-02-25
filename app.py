@@ -1993,8 +1993,8 @@ else:
                             st.success("Restarting app...")
                             time.sleep(1)
                             st.rerun()
-                        else:
-                            st.error(f"Git Pull Failed:\n{result.stderr}")
+                            else:
+                                st.error(f"Git Pull Failed:\n{result.stderr}")
                     except Exception as e:
                         st.error(f"Update failed: {e}")
 
